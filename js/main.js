@@ -598,10 +598,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (isSectionOpen('sec-strategy-comparison')) {
                 const useLogScale = document.getElementById('log-scale-toggle').checked;
+                // Phase 6: standalone buy-and-hold lines, rebased to the portfolio's own
+                // starting value so they share the scale of the other series.
+                const rebBase = results.standard.reb.historyWithoutWithdrawals[0];
+                const eqBase = filteredData[0].EQUITY, gdBase = filteredData[0].GOLD;
+                const equityOnly = (eqBase > 0) ? filteredData.map((d, i) => [dates[i], d.EQUITY / eqBase * rebBase]) : [];
+                const goldOnly = (gdBase > 0) ? filteredData.map((d, i) => [dates[i], d.GOLD / gdBase * rebBase]) : [];
                 const mainChartSeries = [
                     { name: 'No Rebalance', type: 'line', showSymbol: false, data: results.standard.noReb.historyWithoutWithdrawals.map((val, i) => [dates[i], val]), itemStyle: { color: 'rgb(255, 99, 132)' } },
                     { name: 'Periodic Rebalance', type: 'line', showSymbol: false, data: results.standard.reb.historyWithoutWithdrawals.map((val, i) => [dates[i], val]), itemStyle: { color: 'rgb(54, 162, 235)' } },
                     { name: 'Benchmark', type: 'line', showSymbol: false, data: results.standard.benchmark.historyWithoutWithdrawals.map((val, i) => [dates[i], val]), itemStyle: { color: 'rgb(156, 156, 156)' } },
+                    { name: 'Equity Only', type: 'line', showSymbol: false, data: equityOnly, itemStyle: { color: ASSET_COLORS.EQUITY } },
+                    { name: 'Gold Only', type: 'line', showSymbol: false, data: goldOnly, itemStyle: { color: ASSET_COLORS.GOLD } },
                     { name: 'Rebalance Event', type: 'scatter', symbolSize: 8, itemStyle: { color: 'red' }, data: results.standard.reb.rebalanceEvents.map(e => ({ value: [e.date, e.y] })) }
                 ];
 
