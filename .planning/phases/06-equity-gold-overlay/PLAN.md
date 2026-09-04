@@ -1,6 +1,6 @@
-# Phase 4 — Equity-Only / Gold-Only Overlay on Strategy Comparison chart
+# Phase 6 — Equity-Only / Gold-Only Overlay on Strategy Comparison chart
 
-**Goal:** On the main `Strategy Comparison` chart (`#equity-chart`, series built at `index.html:5639-5660`), add two extra lines: standalone EQUITY-only and GOLD-only buy-and-hold trajectories alongside No Rebalance / Periodic Rebalance / Benchmark. Small, surgical change. Depends on Phases 1–3 (uses merged `data` + `results.standard`).
+**Goal:** On the main `Strategy Comparison` chart (`#equity-chart`, `mainChartSeries` + `setOption`), add two extra lines: standalone EQUITY-only and GOLD-only buy-and-hold trajectories alongside No Rebalance / Periodic Rebalance / Benchmark. Small, surgical change. Depends on Phases 1–5 (anchors moved by the Phase 4 split — re-locate `mainChartSeries` via grep; data comes from the `renderVisualizations` bundle).
 
 ## Tasks
 1. Locate `mainChartSeries` at `~L5639-5644` and its `setOption` at `~L5654-5660` (ECharts, `xAxis: {type:'time'}`). Do not touch other charts.

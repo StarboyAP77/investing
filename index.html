@@ -3619,7 +3619,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // --- CHART 1: WEALTH OVERTAKE ---
-        const chartWealth = echarts.init(document.getElementById('dep-wealth-chart'));
+        const chartWealth = echarts.getInstanceByDom(document.getElementById('dep-wealth-chart')) || echarts.init(document.getElementById('dep-wealth-chart'));
         
         chartWealth.setOption({
             tooltip: { trigger: 'axis', formatter: (p) => {
@@ -3656,7 +3656,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
         // --- CHART 2: COST OF HESITATION ---
-        const chartCost = echarts.init(document.getElementById('dep-cost-chart'));
+        const chartCost = echarts.getInstanceByDom(document.getElementById('dep-cost-chart')) || echarts.init(document.getElementById('dep-cost-chart'));
         const diffData = [];
         
         for(let i=0; i<lumpCurve.length; i++) {
@@ -3685,7 +3685,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
         // --- CHART 3: WIN RATE GAUGE (ROLLING ANALYSIS) ---
-        const chartGauge = echarts.init(document.getElementById('dep-gauge-chart'));
+        const chartGauge = echarts.getInstanceByDom(document.getElementById('dep-gauge-chart')) || echarts.init(document.getElementById('dep-gauge-chart'));
         
         let wins = 0;
         let totalTrials = 0;
@@ -5192,41 +5192,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     window.calculateMetrics = calculateMetrics; // console verification hook (Phase 2)
 
-    function updateChartAndTable() {
-
-            // 2. Get Strategy Mode
-            const withdrawalStrategyMode = document.querySelector('input[name="withdrawal-strategy-mode"]:checked').value;
-            
-            // --- UI VISIBILITY LOGIC ---
-            const bunkerPanel = document.getElementById('bunker-config-panel');
-            const bunkerChartSection = document.getElementById('bunker-chart-section');
-            const gkPanel = document.getElementById('gk-config-panel');
-            const gkGuardrailSection = document.getElementById('gk-guardrail-chart-section');
-            
-            if(withdrawalStrategyMode === 'smart_rebalance' || withdrawalStrategyMode === 'guyton_klinger') {
-                if(bunkerPanel) bunkerPanel.style.display = 'block';
-                if(bunkerChartSection) bunkerChartSection.style.display = 'block';
-            } else {
-                if(bunkerPanel) bunkerPanel.style.display = 'none';
-                if(bunkerChartSection) bunkerChartSection.style.display = 'none';
-            }
-
-            if(withdrawalStrategyMode === 'guyton_klinger') {
-                if(gkPanel) gkPanel.style.display = 'block';
-                if(gkGuardrailSection) gkGuardrailSection.style.display = 'block';
-            } else {
-                if(gkPanel) gkPanel.style.display = 'none';
-                if(gkGuardrailSection) gkGuardrailSection.style.display = 'none';
-            }
-
-            // Phase 2: math lives in calculateMetrics(mergedData) above; below is render-only.
-            const calc = calculateMetrics(data);
-            if (!calc) {
-                chartInstances['equity-chart'].clear();
-                return;
-            }
-            // (withdrawalStrategyMode already declared above for visibility toggles — same DOM value — so excluded here.)
-            const { filteredData, dates, targetAlloc, results, commonOptions, useSip, gkConfig, noRebMetrics, rebMetrics, benchmarkMetrics, noRebMetricsWithWithdrawals, rebMetricsWithWithdrawals, benchmarkMetricsWithWithdrawals } = calc;
+    // Phase 3: reusable render layer over the EXISTING ECharts setup. Takes the
+    // calculateMetrics() bundle and pushes it into charts/tables via setOption —
+    // instances are reused, never re-initialised (see initializeChart/getInstanceByDom).
+    function renderVisualizations(calc) {
+            const { filteredData, dates, targetAlloc, results, commonOptions, useSip, withdrawalStrategyMode, gkConfig, noRebMetrics, rebMetrics, benchmarkMetrics, noRebMetricsWithWithdrawals, rebMetricsWithWithdrawals, benchmarkMetricsWithWithdrawals } = calc;
 
             try {
                 renderCorrelationMatrix(calculateCorrelationMatrix(filteredData), 'correlation-matrix-container');
@@ -5651,6 +5621,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) { console.error("Error updating charts:", e); }
     }
 
+    function updateChartAndTable() {
+
+            // 2. Get Strategy Mode
+            const withdrawalStrategyMode = document.querySelector('input[name="withdrawal-strategy-mode"]:checked').value;
+            
+            // --- UI VISIBILITY LOGIC ---
+            const bunkerPanel = document.getElementById('bunker-config-panel');
+            const bunkerChartSection = document.getElementById('bunker-chart-section');
+            const gkPanel = document.getElementById('gk-config-panel');
+            const gkGuardrailSection = document.getElementById('gk-guardrail-chart-section');
+            
+            if(withdrawalStrategyMode === 'smart_rebalance' || withdrawalStrategyMode === 'guyton_klinger') {
+                if(bunkerPanel) bunkerPanel.style.display = 'block';
+                if(bunkerChartSection) bunkerChartSection.style.display = 'block';
+            } else {
+                if(bunkerPanel) bunkerPanel.style.display = 'none';
+                if(bunkerChartSection) bunkerChartSection.style.display = 'none';
+            }
+
+            if(withdrawalStrategyMode === 'guyton_klinger') {
+                if(gkPanel) gkPanel.style.display = 'block';
+                if(gkGuardrailSection) gkGuardrailSection.style.display = 'block';
+            } else {
+                if(gkPanel) gkPanel.style.display = 'none';
+                if(gkGuardrailSection) gkGuardrailSection.style.display = 'none';
+            }
+
+            // Phase 3 chain: Data Select -> Merge -> Recalculate -> Re-render.
+            const calc = calculateMetrics(data);
+            if (!calc) {
+                chartInstances['equity-chart'].clear();
+                return;
+            }
+            renderVisualizations(calc);
+    }
+
     const themeToggle = document.getElementById('theme-toggle');
     function applyTheme(theme) { document.body.classList.toggle('dark-mode', theme === 'dark'); themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙'; setTimeout(updateAllChartThemes, 50); }
     themeToggle.addEventListener('click', () => { const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark'; localStorage.setItem('theme', newTheme); applyTheme(newTheme); });
@@ -5743,7 +5749,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     summaryTable.addEventListener('mouseout', () => { tooltip.style.display = 'none'; });
     generateAllocationInputs();
     populateDateDropdowns();
-    // Phase 1: strategy switch reuses cached rawJsonData (no re-fetch); full render refactor lands in Phase 3.
+    // Phase 3 chain: Data Select -> Merge Array -> Recalculate Metrics -> Re-render Visualizations.
+    // Reuses cached rawJsonData (no re-fetch); updateChartAndTable() runs calculateMetrics + renderVisualizations.
     if (strategySelect) strategySelect.addEventListener('change', () => {
         currentStrategy = strategySelect.value;
         const merged = buildMergedData(currentStrategy);
@@ -5753,7 +5760,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         populateDateDropdowns();
         updateChartAndTable();
     });
-    document.querySelectorAll('.controls input, .controls select').forEach(input => input.addEventListener('input', updateChartAndTable));
+    // Phase 3: #strategy-selector has its own change handler above (rebuild + render), so exclude it here to avoid double renders.
+    document.querySelectorAll('.controls input, .controls select:not(#strategy-selector)').forEach(input => input.addEventListener('input', updateChartAndTable));
     document.getElementById('log-scale-toggle').addEventListener('change', updateChartAndTable);
     
     function handleInvestmentMethodChange() {

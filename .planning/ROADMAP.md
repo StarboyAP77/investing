@@ -9,7 +9,11 @@ Milestone: Dynamic strategy switching via `data.json` (GitHub Pages safe)
 - [ ] **Phase 3 — Interface & Existing Chart Rendering Pipeline Integration** (`03-chart-render-integration`)
   Goal: Reusable `renderVisualizations()` on existing ECharts (`chartInstances`, `echarts.init/setOption`), `change` listener → full chain, Pages-safe (relative path, no CORS, cache-bust).
 
-- [ ] **Phase 4 — Equity-Only / Gold-Only Overlay** (`04-equity-gold-overlay`)
-  Goal: Add standalone `Equity Only` + `Gold Only` lines to main `Strategy Comparison` chart (`#equity-chart`, `~L5639-5660`), same scale, legend-togglable.
+- [ ] **Phase 4 — JS/CSS Separation** (`04-js-css-separation`)
+  Goal: Split `index.html` (~6600 lines) into small/medium CSS + ES-module JS files by concern; `index.html` becomes a shell. Zero behavior change.
+- [ ] **Phase 5 — Lazy-Load Sections** (`05-lazy-load-sections`)
+  Goal: Every collapsible `<details class="chart-group">` computes + renders on first open (existing toggle+dirty-flag pattern generalized); cold load renders core path only.
+- [ ] **Phase 6 — Equity-Only / Gold-Only Overlay** (`06-equity-gold-overlay`)
+  Goal: Add standalone `Equity Only` + `Gold Only` lines to main `Strategy Comparison` chart (`#equity-chart`), same scale, legend-togglable.
 
 Execute one by one: plan → execute → human verify. No commits, no tests.
