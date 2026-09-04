@@ -579,6 +579,19 @@
 <div class="container">
     <div class="controls">
         <details class="control-group" open>
+            <summary><h3>Equity Strategy</h3></summary>
+            <div class="details-content">
+                <label for="strategy-selector">Momentum Strategy (monthly NAV)</label>
+                <select id="strategy-selector">
+                    <option value="nseMidcap150Mom50" selected>NSE Midcap 150 Mom 50</option>
+                    <option value="bseMidcap150Mom30">BSE Midcap 150 Mom 30</option>
+                    <option value="nse500Mom50">NSE 500 Mom 50</option>
+                </select>
+                <small style="color: var(--label-color);">Gold &amp; benchmark load from data.json; equity switches here.</small>
+            </div>
+        </details>
+
+        <details class="control-group" open>
             <summary><h3>Target Allocation (%)</h3></summary>
             <div class="details-content">
                 <div id="allocation-inputs" class="allocation-grid"></div>
@@ -2010,262 +2023,32 @@
 <script type="module">
 
 // ddddddddddddddddddddd
-const data = [
-  { date: "2005-06-30", EQUITY: 1037.11, GOLD: 6.28, BENCHMARK: 29.34 },
-  { date: "2005-07-29", EQUITY: 1186.87, GOLD: 6.16, BENCHMARK: 33.39 },
-  { date: "2005-08-31", EQUITY: 1328.39, GOLD: 6.32, BENCHMARK: 36.98 },
-  { date: "2005-09-30", EQUITY: 1442.35, GOLD: 6.88, BENCHMARK: 38.42 },
-  { date: "2005-10-31", EQUITY: 1297.87, GOLD: 7.01, BENCHMARK: 34.59 },
-  { date: "2005-11-30", EQUITY: 1456.40, GOLD: 7.52, BENCHMARK: 38.50 },
-  { date: "2005-12-30", EQUITY: 1579.13, GOLD: 7.65, BENCHMARK: 41.56 },
-  { date: "2006-01-31", EQUITY: 1738.63, GOLD: 8.29, BENCHMARK: 44.51 },
-  { date: "2006-02-28", EQUITY: 1801.20, GOLD: 8.15, BENCHMARK: 46.22 },
-  { date: "2006-03-31", EQUITY: 2067.55, GOLD: 8.58, BENCHMARK: 53.35 },
-  { date: "2006-04-28", EQUITY: 2146.61, GOLD: 9.54, BENCHMARK: 57.65 },
-  { date: "2006-05-31", EQUITY: 1829.38, GOLD: 10.00, BENCHMARK: 50.42 },
-  { date: "2006-06-30", EQUITY: 1591.20, GOLD: 9.33, BENCHMARK: 47.37 },
-  { date: "2006-07-31", EQUITY: 1538.63, GOLD: 9.73, BENCHMARK: 47.76 },
-  { date: "2006-08-31", EQUITY: 1707.65, GOLD: 9.58, BENCHMARK: 52.84 },
-  { date: "2006-09-29", EQUITY: 1856.26, GOLD: 9.09, BENCHMARK: 55.81 },
-  { date: "2006-10-31", EQUITY: 1973.12, GOLD: 8.98, BENCHMARK: 59.17 },
-  { date: "2006-11-30", EQUITY: 2145.79, GOLD: 9.55, BENCHMARK: 62.29 },
-  { date: "2006-12-29", EQUITY: 2218.73, GOLD: 9.24, BENCHMARK: 65.80 },
-  { date: "2007-01-31", EQUITY: 2246.21, GOLD: 9.49, BENCHMARK: 67.80 },
-  { date: "2007-02-28", EQUITY: 2041.03, GOLD: 9.71, BENCHMARK: 62.89 },
-  { date: "2007-03-30", EQUITY: 2012.27, GOLD: 9.50, BENCHMARK: 63.01 },
-  { date: "2007-04-30", EQUITY: 2190.24, GOLD: 9.21, BENCHMARK: 67.14 },
-  { date: "2007-05-31", EQUITY: 2317.93, GOLD: 8.79, BENCHMARK: 69.96 },
-  { date: "2007-06-29", EQUITY: 2475.25, GOLD: 8.69, BENCHMARK: 70.73 },
-  { date: "2007-07-31", EQUITY: 2605.92, GOLD: 8.79, BENCHMARK: 73.49 },
-  { date: "2007-08-31", EQUITY: 2521.79, GOLD: 8.92, BENCHMARK: 72.22 },
-  { date: "2007-09-28", EQUITY: 2942.83, GOLD: 9.50, BENCHMARK: 77.42 },
-  { date: "2007-10-31", EQUITY: 3376.98, GOLD: 9.94, BENCHMARK: 85.08 },
-  { date: "2007-11-30", EQUITY: 3621.85, GOLD: 10.30, BENCHMARK: 84.60 },
-  { date: "2007-12-31", EQUITY: 4130.08, GOLD: 10.62, BENCHMARK: 92.63 },
-  { date: "2008-01-31", EQUITY: 3223.49, GOLD: 11.80, BENCHMARK: 80.46 },
-  { date: "2008-02-29", EQUITY: 3127.95, GOLD: 12.49, BENCHMARK: 79.24 },
-  { date: "2008-03-31", EQUITY: 2531.75, GOLD: 12.17, BENCHMARK: 72.24 },
-  { date: "2008-04-30", EQUITY: 2889.30, GOLD: 11.52, BENCHMARK: 79.06 },
-  { date: "2008-05-30", EQUITY: 2720.44, GOLD: 12.14, BENCHMARK: 75.98 },
-  { date: "2008-06-30", EQUITY: 2056.14, GOLD: 13.12, BENCHMARK: 64.72 },
-  { date: "2008-07-31", EQUITY: 2249.17, GOLD: 12.59, BENCHMARK: 68.85 },
-  { date: "2008-08-29", EQUITY: 2302.37, GOLD: 11.89, BENCHMARK: 71.43 },
-  { date: "2008-09-30", EQUITY: 1942.39, GOLD: 12.87, BENCHMARK: 63.28 },
-  { date: "2008-10-31", EQUITY: 1421.50, GOLD: 11.56, BENCHMARK: 48.42 },
-  { date: "2008-11-28", EQUITY: 1331.62, GOLD: 12.72, BENCHMARK: 45.97 },
-  { date: "2008-12-31", EQUITY: 1442.30, GOLD: 13.22, BENCHMARK: 51.14 },
-  { date: "2009-01-30", EQUITY: 1332.57, GOLD: 14.03, BENCHMARK: 48.80 },
-  { date: "2009-02-27", EQUITY: 1293.18, GOLD: 15.04, BENCHMARK: 46.80 },
-  { date: "2009-03-31", EQUITY: 1342.66, GOLD: 14.92, BENCHMARK: 49.55 },
-  { date: "2009-04-29", EQUITY: 1501.59, GOLD: 14.36, BENCHMARK: 56.80 },
-  { date: "2009-05-29", EQUITY: 1943.64, GOLD: 14.65, BENCHMARK: 68.25 },
-  { date: "2009-06-30", EQUITY: 2013.51, GOLD: 14.44, BENCHMARK: 69.49 },
-  { date: "2009-07-31", EQUITY: 2211.28, GOLD: 14.55, BENCHMARK: 75.28 },
-  { date: "2009-08-31", EQUITY: 2270.97, GOLD: 15.05, BENCHMARK: 78.22 },
-  { date: "2009-09-30", EQUITY: 2474.96, GOLD: 15.48, BENCHMARK: 83.83 },
-  { date: "2009-10-30", EQUITY: 2399.33, GOLD: 15.72, BENCHMARK: 81.88 },
-  { date: "2009-11-30", EQUITY: 2631.39, GOLD: 17.44, BENCHMARK: 87.06 },
-  { date: "2009-12-31", EQUITY: 2710.86, GOLD: 16.52, BENCHMARK: 92.03 },
-  { date: "2010-01-29", EQUITY: 2653.31, GOLD: 16.07, BENCHMARK: 90.01 },
-  { date: "2010-02-26", EQUITY: 2664.77, GOLD: 16.51, BENCHMARK: 90.30 },
-  { date: "2010-03-31", EQUITY: 2867.80, GOLD: 16.08, BENCHMARK: 95.26 },
-  { date: "2010-04-30", EQUITY: 3033.70, GOLD: 16.71, BENCHMARK: 96.77 },
-  { date: "2010-05-31", EQUITY: 2946.81, GOLD: 17.97, BENCHMARK: 96.09 },
-  { date: "2010-06-30", EQUITY: 3096.29, GOLD: 18.53, BENCHMARK: 99.59 },
-  { date: "2010-07-30", EQUITY: 3252.77, GOLD: 17.53, BENCHMARK: 101.15 },
-  { date: "2010-08-31", EQUITY: 3366.27, GOLD: 18.57, BENCHMARK: 101.54 },
-  { date: "2010-09-30", EQUITY: 3617.85, GOLD: 18.81, BENCHMARK: 108.50 },
-  { date: "2010-10-29", EQUITY: 3753.20, GOLD: 18.95, BENCHMARK: 109.53 },
-  { date: "2010-11-30", EQUITY: 3606.66, GOLD: 19.90, BENCHMARK: 108.33 },
-  { date: "2010-12-31", EQUITY: 3560.02, GOLD: 20.10, BENCHMARK: 111.59 },
-  { date: "2011-01-31", EQUITY: 3188.23, GOLD: 19.56, BENCHMARK: 104.92 },
-  { date: "2011-02-28", EQUITY: 3030.85, GOLD: 20.20, BENCHMARK: 102.47 },
-  { date: "2011-03-31", EQUITY: 3387.39, GOLD: 20.24, BENCHMARK: 109.24 },
-  { date: "2011-04-29", EQUITY: 3448.13, GOLD: 21.57, BENCHMARK: 109.77 },
-  { date: "2011-05-31", EQUITY: 3452.15, GOLD: 21.90, BENCHMARK: 107.79 },
-  { date: "2011-06-30", EQUITY: 3504.74, GOLD: 21.34, BENCHMARK: 107.93 },
-  { date: "2011-07-29", EQUITY: 3559.20, GOLD: 22.31, BENCHMARK: 106.64 },
-  { date: "2011-08-30", EQUITY: 3294.46, GOLD: 25.92, BENCHMARK: 96.70 },
-  { date: "2011-09-30", EQUITY: 3198.06, GOLD: 25.21, BENCHMARK: 95.78 },
-  { date: "2011-10-31", EQUITY: 3328.78, GOLD: 25.99, BENCHMARK: 101.45 },
-  { date: "2011-11-30", EQUITY: 3141.25, GOLD: 27.67, BENCHMARK: 93.84 },
-  { date: "2011-12-30", EQUITY: 2943.21, GOLD: 26.10, BENCHMARK: 88.92 },
-  { date: "2012-01-31", EQUITY: 3254.69, GOLD: 27.07, BENCHMARK: 101.34 },
-  { date: "2012-02-29", EQUITY: 3442.03, GOLD: 27.51, BENCHMARK: 107.08 },
-  { date: "2012-03-30", EQUITY: 3589.03, GOLD: 27.01, BENCHMARK: 106.12 },
-  { date: "2012-04-30", EQUITY: 3618.79, GOLD: 27.87, BENCHMARK: 104.09 },
-  { date: "2012-05-31", EQUITY: 3468.27, GOLD: 27.88, BENCHMARK: 100.50 },
-  { date: "2012-06-29", EQUITY: 3589.34, GOLD: 28.09, BENCHMARK: 105.22 },
-  { date: "2012-07-31", EQUITY: 3601.58, GOLD: 28.63, BENCHMARK: 104.71 },
-  { date: "2012-08-31", EQUITY: 3659.43, GOLD: 29.29, BENCHMARK: 104.56 },
-  { date: "2012-09-28", EQUITY: 3945.71, GOLD: 29.94, BENCHMARK: 111.42 },
-  { date: "2012-10-31", EQUITY: 4045.77, GOLD: 29.48, BENCHMARK: 110.45 },
-  { date: "2012-11-30", EQUITY: 4415.77, GOLD: 30.01, BENCHMARK: 114.58 },
-  { date: "2012-12-31", EQUITY: 4578.88, GOLD: 29.03, BENCHMARK: 116.12 },
-  { date: "2013-01-31", EQUITY: 4534.59, GOLD: 28.80, BENCHMARK: 119.08 },
-  { date: "2013-02-28", EQUITY: 4422.75, GOLD: 27.97, BENCHMARK: 112.95 },
-  { date: "2013-03-28", EQUITY: 4432.90, GOLD: 28.07, BENCHMARK: 110.55 },
-  { date: "2013-04-30", EQUITY: 4499.00, GOLD: 25.64, BENCHMARK: 113.70 },
-  { date: "2013-05-31", EQUITY: 4729.30, GOLD: 25.76, BENCHMARK: 112.40 },
-  { date: "2013-06-28", EQUITY: 4531.63, GOLD: 23.84, BENCHMARK: 109.44 },
-  { date: "2013-07-31", EQUITY: 4287.88, GOLD: 26.74, BENCHMARK: 109.17 },
-  { date: "2013-08-30", EQUITY: 4103.63, GOLD: 29.12, BENCHMARK: 112.26 },
-  { date: "2013-09-30", EQUITY: 4458.76, GOLD: 28.42, BENCHMARK: 117.58 },
-  { date: "2013-10-31", EQUITY: 4712.24, GOLD: 28.66, BENCHMARK: 128.48 },
-  { date: "2013-11-29", EQUITY: 4805.56, GOLD: 28.76, BENCHMARK: 129.92 },
-  { date: "2013-12-31", EQUITY: 5147.90, GOLD: 27.18, BENCHMARK: 135.08 },
-  { date: "2014-01-31", EQUITY: 5073.97, GOLD: 27.66, BENCHMARK: 131.08 },
-  { date: "2014-02-28", EQUITY: 5263.22, GOLD: 28.50, BENCHMARK: 133.92 },
-  { date: "2014-03-31", EQUITY: 5425.27, GOLD: 27.07, BENCHMARK: 143.56 },
-  { date: "2014-04-30", EQUITY: 5548.52, GOLD: 27.86, BENCHMARK: 146.01 },
-  { date: "2014-05-30", EQUITY: 6055.96, GOLD: 24.92, BENCHMARK: 157.70 },
-  { date: "2014-06-30", EQUITY: 6806.37, GOLD: 26.07, BENCHMARK: 169.06 },
-  { date: "2014-07-31", EQUITY: 6924.56, GOLD: 25.69, BENCHMARK: 169.75 },
-  { date: "2014-08-28", EQUITY: 7401.05, GOLD: 25.71, BENCHMARK: 173.57 },
-  { date: "2014-09-30", EQUITY: 8023.83, GOLD: 24.70, BENCHMARK: 176.42 },
-  { date: "2014-10-31", EQUITY: 8297.87, GOLD: 24.27, BENCHMARK: 184.16 },
-  { date: "2014-11-28", EQUITY: 8779.20, GOLD: 24.43, BENCHMARK: 188.43 },
-  { date: "2014-12-31", EQUITY: 9038.42, GOLD: 24.64, BENCHMARK: 185.12 },
-  { date: "2015-01-30", EQUITY: 9661.11, GOLD: 25.79, BENCHMARK: 193.57 },
-  { date: "2015-02-27", EQUITY: 9861.20, GOLD: 24.37, BENCHMARK: 195.32 },
-  { date: "2015-03-31", EQUITY: 9971.12, GOLD: 23.99, BENCHMARK: 188.80 },
-  { date: "2015-04-30", EQUITY: 9485.26, GOLD: 24.84, BENCHMARK: 184.84 },
-  { date: "2015-05-29", EQUITY: 9988.44, GOLD: 24.60, BENCHMARK: 189.31 },
-  { date: "2015-06-30", EQUITY: 10056.13, GOLD: 24.20, BENCHMARK: 182.83 },
-  { date: "2015-07-31", EQUITY: 10696.44, GOLD: 22.70, BENCHMARK: 186.45 },
-  { date: "2015-08-31", EQUITY: 10379.59, GOLD: 24.31, BENCHMARK: 175.67 },
-  { date: "2015-09-30", EQUITY: 10492.65, GOLD: 23.87, BENCHMARK: 175.56 },
-  { date: "2015-10-30", EQUITY: 10729.36, GOLD: 24.41, BENCHMARK: 182.57 },
-  { date: "2015-11-30", EQUITY: 10593.07, GOLD: 22.92, BENCHMARK: 183.05 },
-  { date: "2015-12-31", EQUITY: 10620.56, GOLD: 22.79, BENCHMARK: 182.52 },
-  { date: "2016-01-29", EQUITY: 10143.51, GOLD: 24.23, BENCHMARK: 173.97 },
-  { date: "2016-02-29", EQUITY: 9308.23, GOLD: 26.49, BENCHMARK: 158.74 },
-  { date: "2016-03-31", EQUITY: 10085.49, GOLD: 25.64, BENCHMARK: 175.52 },
-  { date: "2016-04-29", EQUITY: 10564.48, GOLD: 27.17, BENCHMARK: 181.99 },
-  { date: "2016-05-31", EQUITY: 10747.00, GOLD: 26.46, BENCHMARK: 183.70 },
-  { date: "2016-06-30", EQUITY: 11126.11, GOLD: 27.77, BENCHMARK: 191.06 },
-  { date: "2016-07-29", EQUITY: 11688.25, GOLD: 27.96, BENCHMARK: 199.56 },
-  { date: "2016-08-31", EQUITY: 12194.60, GOLD: 28.12, BENCHMARK: 208.97 },
-  { date: "2016-09-30", EQUITY: 12454.45, GOLD: 28.25, BENCHMARK: 205.12 },
-  { date: "2016-10-28", EQUITY: 12893.78, GOLD: 27.39, BENCHMARK: 208.56 },
-  { date: "2016-11-30", EQUITY: 11648.99, GOLD: 26.46, BENCHMARK: 206.71 },
-  { date: "2016-12-30", EQUITY: 11256.00, GOLD: 25.65, BENCHMARK: 205.33 },
-  { date: "2017-01-31", EQUITY: 12401.35, GOLD: 26.31, BENCHMARK: 216.52 },
-  { date: "2017-02-28", EQUITY: 13327.22, GOLD: 27.02, BENCHMARK: 224.45 },
-  { date: "2017-03-31", EQUITY: 13952.44, GOLD: 26.13, BENCHMARK: 230.23 },
-  { date: "2017-04-28", EQUITY: 14638.17, GOLD: 26.40, BENCHMARK: 231.45 },
-  { date: "2017-05-31", EQUITY: 14693.62, GOLD: 26.18, BENCHMARK: 233.19 },
-  { date: "2017-06-30", EQUITY: 15042.69, GOLD: 25.77, BENCHMARK: 234.40 },
-  { date: "2017-07-31", EQUITY: 15837.47, GOLD: 25.71, BENCHMARK: 242.72 },
-  { date: "2017-08-31", EQUITY: 15972.13, GOLD: 26.53, BENCHMARK: 239.63 },
-  { date: "2017-09-29", EQUITY: 16261.02, GOLD: 26.66, BENCHMARK: 240.67 },
-  { date: "2017-10-31", EQUITY: 17616.82, GOLD: 26.37, BENCHMARK: 254.89 },
-  { date: "2017-11-30", EQUITY: 18228.39, GOLD: 26.30, BENCHMARK: 257.36 },
-  { date: "2017-12-29", EQUITY: 19608.50, GOLD: 26.27, BENCHMARK: 263.14 },
-  { date: "2018-01-31", EQUITY: 19131.64, GOLD: 27.09, BENCHMARK: 266.72 },
-  { date: "2018-02-28", EQUITY: 18191.79, GOLD: 27.30, BENCHMARK: 259.93 },
-  { date: "2018-03-28", EQUITY: 17556.19, GOLD: 27.46, BENCHMARK: 252.12 },
-  { date: "2018-04-30", EQUITY: 18453.58, GOLD: 27.75, BENCHMARK: 260.35 },
-  { date: "2018-05-31", EQUITY: 17576.73, GOLD: 27.78, BENCHMARK: 254.55 },
-  { date: "2018-06-29", EQUITY: 17097.70, GOLD: 27.13, BENCHMARK: 249.41 },
-  { date: "2018-07-31", EQUITY: 17779.51, GOLD: 26.50, BENCHMARK: 254.64 },
-  { date: "2018-08-31", EQUITY: 19352.89, GOLD: 27.05, BENCHMARK: 263.68 },
-  { date: "2018-09-28", EQUITY: 17077.19, GOLD: 27.03, BENCHMARK: 256.08 },
-  { date: "2018-10-31", EQUITY: 16175.20, GOLD: 28.37, BENCHMARK: 253.88 },
-  { date: "2018-11-30", EQUITY: 16207.14, GOLD: 26.99, BENCHMARK: 250.60 },
-  { date: "2018-12-31", EQUITY: 16279.63, GOLD: 28.02, BENCHMARK: 257.37 },
-  { date: "2019-01-31", EQUITY: 15894.36, GOLD: 29.35, BENCHMARK: 253.25 },
-  { date: "2019-02-28", EQUITY: 15787.03, GOLD: 29.50, BENCHMARK: 252.17 },
-  { date: "2019-03-29", EQUITY: 16773.74, GOLD: 28.08, BENCHMARK: 267.98 },
-  { date: "2019-04-30", EQUITY: 16475.29, GOLD: 28.15, BENCHMARK: 266.53 },
-  { date: "2019-05-31", EQUITY: 16524.69, GOLD: 28.38, BENCHMARK: 270.15 },
-  { date: "2019-06-28", EQUITY: 16584.99, GOLD: 29.98, BENCHMARK: 273.66 },
-  { date: "2019-07-31", EQUITY: 15052.90, GOLD: 30.66, BENCHMARK: 262.81 },
-  { date: "2019-08-30", EQUITY: 15119.17, GOLD: 33.80, BENCHMARK: 258.58 },
-  { date: "2019-09-30", EQUITY: 15670.25, GOLD: 32.97, BENCHMARK: 263.38 },
-  { date: "2019-10-31", EQUITY: 16765.98, GOLD: 34.07, BENCHMARK: 271.04 },
-  { date: "2019-11-29", EQUITY: 17007.59, GOLD: 33.41, BENCHMARK: 274.25 },
-  { date: "2019-12-31", EQUITY: 17192.90, GOLD: 34.45, BENCHMARK: 277.26 },
-  { date: "2020-01-31", EQUITY: 18549.65, GOLD: 35.87, BENCHMARK: 273.69 },
-  { date: "2020-02-28", EQUITY: 18059.45, GOLD: 37.37, BENCHMARK: 256.56 },
-  { date: "2020-03-31", EQUITY: 13619.34, GOLD: 38.21, BENCHMARK: 211.00 },
-  { date: "2020-04-30", EQUITY: 15689.12, GOLD: 42.57, BENCHMARK: 238.79 },
-  { date: "2020-05-29", EQUITY: 15165.09, GOLD: 40.99, BENCHMARK: 241.25 },
-  { date: "2020-06-30", EQUITY: 16672.62, GOLD: 42.61, BENCHMARK: 251.89 },
-  { date: "2020-07-31", EQUITY: 17595.75, GOLD: 47.14, BENCHMARK: 261.05 },
-  { date: "2020-08-31", EQUITY: 18381.01, GOLD: 45.34, BENCHMARK: 270.44 },
-  { date: "2020-09-30", EQUITY: 19380.58, GOLD: 44.18, BENCHMARK: 254.94 },
-  { date: "2020-10-30", EQUITY: 19243.61, GOLD: 44.32, BENCHMARK: 256.03 },
-  { date: "2020-11-27", EQUITY: 20931.47, GOLD: 45.10, BENCHMARK: 280.70 },
-  { date: "2020-12-31", EQUITY: 21810.79, GOLD: 43.75, BENCHMARK: 304.82 },
-  { date: "2021-01-29", EQUITY: 21690.98, GOLD: 42.65, BENCHMARK: 302.43 },
-  { date: "2021-02-26", EQUITY: 25137.01, GOLD: 40.25, BENCHMARK: 334.95 },
-  { date: "2021-03-31", EQUITY: 27265.07, GOLD: 38.17, BENCHMARK: 331.11 },
-  { date: "2021-04-30", EQUITY: 28500.36, GOLD: 40.59, BENCHMARK: 337.25 },
-  { date: "2021-05-31", EQUITY: 30275.51, GOLD: 42.59, BENCHMARK: 359.74 },
-  { date: "2021-06-30", EQUITY: 31630.16, GOLD: 40.52, BENCHMARK: 361.30 },
-  { date: "2021-07-30", EQUITY: 32885.39, GOLD: 41.92, BENCHMARK: 372.50 },
-  { date: "2021-08-31", EQUITY: 35036.44, GOLD: 40.83, BENCHMARK: 386.93 },
-  { date: "2021-09-30", EQUITY: 37056.00, GOLD: 39.72, BENCHMARK: 407.90 },
-  { date: "2021-10-29", EQUITY: 37564.71, GOLD: 41.50, BENCHMARK: 414.68 },
-  { date: "2021-11-30", EQUITY: 36925.29, GOLD: 41.51, BENCHMARK: 406.38 },
-  { date: "2021-12-31", EQUITY: 38886.31, GOLD: 41.48, BENCHMARK: 410.67 },
-  { date: "2022-01-31", EQUITY: 38066.66, GOLD: 41.25, BENCHMARK: 428.87 },
-  { date: "2022-02-28", EQUITY: 35878.76, GOLD: 43.59, BENCHMARK: 422.90 },
-  { date: "2022-03-31", EQUITY: 38336.35, GOLD: 44.12, BENCHMARK: 434.08 },
-  { date: "2022-04-29", EQUITY: 37380.44, GOLD: 44.79, BENCHMARK: 438.95 },
-  { date: "2022-05-31", EQUITY: 35251.96, GOLD: 43.95, BENCHMARK: 432.97 },
-  { date: "2022-06-30", EQUITY: 33234.04, GOLD: 43.76, BENCHMARK: 420.55 },
-  { date: "2022-07-29", EQUITY: 37065.28, GOLD: 44.06, BENCHMARK: 439.58 },
-  { date: "2022-08-30", EQUITY: 39944.80, GOLD: 43.90, BENCHMARK: 452.79 },
-  { date: "2022-09-30", EQUITY: 39995.83, GOLD: 43.16, BENCHMARK: 447.75 },
-  { date: "2022-10-31", EQUITY: 40905.34, GOLD: 43.23, BENCHMARK: 466.21 },
-  { date: "2022-11-30", EQUITY: 40871.05, GOLD: 45.10, BENCHMARK: 480.91 },
-  { date: "2022-12-30", EQUITY: 39016.44, GOLD: 46.79, BENCHMARK: 479.84 },
-  { date: "2023-01-31", EQUITY: 37866.64, GOLD: 48.67, BENCHMARK: 478.77 },
-  { date: "2023-02-28", EQUITY: 37732.07, GOLD: 47.41, BENCHMARK: 473.36 },
-  { date: "2023-03-31", EQUITY: 37811.02, GOLD: 51.07, BENCHMARK: 479.18 },
-  { date: "2023-04-28", EQUITY: 39576.92, GOLD: 51.25, BENCHMARK: 490.25 },
-  { date: "2023-05-31", EQUITY: 42153.49, GOLD: 51.13, BENCHMARK: 499.75 },
-  { date: "2023-06-30", EQUITY: 43962.12, GOLD: 49.31, BENCHMARK: 513.75 },
-  { date: "2023-07-31", EQUITY: 46923.34, GOLD: 50.66, BENCHMARK: 539.30 },
-  { date: "2023-08-31", EQUITY: 48823.03, GOLD: 50.35, BENCHMARK: 538.30 },
-  { date: "2023-09-29", EQUITY: 51207.75, GOLD: 49.29, BENCHMARK: 549.15 },
-  { date: "2023-10-31", EQUITY: 49723.94, GOLD: 52.06, BENCHMARK: 545.39 },
-  { date: "2023-11-30", EQUITY: 55670.12, GOLD: 53.15, BENCHMARK: 573.19 },
-  { date: "2023-12-29", EQUITY: 59492.34, GOLD: 53.66, BENCHMARK: 595.71 },
-  { date: "2024-01-31", EQUITY: 64036.58, GOLD: 53.35, BENCHMARK: 608.16 },
-  { date: "2024-02-29", EQUITY: 63850.94, GOLD: 52.78, BENCHMARK: 618.73 },
-  { date: "2024-03-28", EQUITY: 64846.47, GOLD: 56.61, BENCHMARK: 635.23 },
-  { date: "2024-04-30", EQUITY: 69828.42, GOLD: 60.88, BENCHMARK: 654.27 },
-  { date: "2024-05-31", EQUITY: 73037.12, GOLD: 61.29, BENCHMARK: 657.52 },
-  { date: "2024-06-28", EQUITY: 76542.81, GOLD: 60.63, BENCHMARK: 680.08 },
-  { date: "2024-07-31", EQUITY: 80122.93, GOLD: 58.68, BENCHMARK: 700.21 },
-  { date: "2024-08-30", EQUITY: 81110.33, GOLD: 60.66, BENCHMARK: 708.85 },
-  { date: "2024-09-30", EQUITY: 81914.19, GOLD: 63.55, BENCHMARK: 726.50 },
-  { date: "2024-10-31", EQUITY: 77029.29, GOLD: 66.92, BENCHMARK: 707.83 },
-  { date: "2024-11-29", EQUITY: 77946.01, GOLD: 64.29, BENCHMARK: 700.54 },
-  { date: "2024-12-31", EQUITY: 78707.46, GOLD: 64.09, BENCHMARK: 691.89 },
-  { date: "2025-01-31", EQUITY: 69868.81, GOLD: 69.08, BENCHMARK: 705.57 },
-  { date: "2025-02-28", EQUITY: 62198.84, GOLD: 71.10, BENCHMARK: 689.08 },
-  { date: "2025-03-28", EQUITY: 68005.91, GOLD: 74.16, BENCHMARK: 719.76 },
-  { date: "2025-04-30", EQUITY: 70632.10, GOLD: 79.09, BENCHMARK: 733.40 },
-  { date: "2025-05-30", EQUITY: 74612.04, GOLD: 79.49, BENCHMARK: 745.38 },
-  { date: "2025-06-30", EQUITY: 78339.55, GOLD: 79.99, BENCHMARK: 761.02 },
-  { date: "2025-07-31", EQUITY: 75063.59, GOLD: 82.20, BENCHMARK: 752.16 },
-  { date: "2025-08-29", EQUITY: 72872.30, GOLD: 85.34, BENCHMARK: 757.14 },
-  { date: "2025-09-30", EQUITY: 72018.70, GOLD: 95.85, BENCHMARK: 774.91 },
-  { date: "2025-10-31", EQUITY: 75953.63, GOLD: 100.02, BENCHMARK: 797.87 },
-  { date: "2025-11-28", EQUITY: 78045.66, GOLD: 104.62, BENCHMARK: 810.71 },
-  { date: "2025-12-31", EQUITY: 75982.50, GOLD: 110.11, BENCHMARK: 820.58 },
-  { date: "2026-01-30", EQUITY: 74280.74, GOLD: 131.12, BENCHMARK: 818.76 },
-  { date: "2026-02-27", EQUITY: 75843.52, GOLD: 131.60, BENCHMARK: 820.82 },
-  { date: "2026-03-30", EQUITY: 66945.19, GOLD: 121.40, BENCHMARK: 766.37 },
-  { date: "2026-04-30", EQUITY: 75169.46, GOLD: 123.43, BENCHMARK: 800.12 },
-  { date: "2026-05-29", EQUITY: 78021.20, GOLD: 128.71, BENCHMARK: 798.55 },
-  { date: "2026-06-30", EQUITY: 77835.80, GOLD: 115.97, BENCHMARK: 803.25 },
-  { date: "2026-07-31", EQUITY: 77517.95, GOLD: 117.11, BENCHMARK: 814.44 },
-];
+let data = [];
+
+// ===== Dynamic strategy state (Phase 1: data.json driven) =====
+const STRATEGY_KEYS = ["nseMidcap150Mom50", "bseMidcap150Mom30", "nse500Mom50"];
+let rawJsonData = null;
+let currentStrategy = "nseMidcap150Mom50";
+
+// Merge selected equity NAVs with constant gold/benchmark by exact date-string match.
+// Returns [{date, EQUITY, GOLD, BENCHMARK}] sorted by date (YYYY-MM-DD sorts lexicographically).
+// Unknown/empty strategy key (placeholder with no rows yet) -> warns and returns [].
+function buildMergedData(strategy) {
+    if (!rawJsonData) return [];
+    const eq = rawJsonData[strategy], gold = rawJsonData["gold"], bench = rawJsonData["benchmark"];
+    if (!eq || eq.length === 0) { console.warn(`[strategy] no rows for "${strategy}" yet — keeping previous dataset`); return []; }
+    if (!gold || !bench) { console.warn("[strategy] data.json must contain gold + benchmark"); return []; }
+    const goldByDate = new Map(gold.map(r => [r.date, r.nav]));
+    const benchByDate = new Map(bench.map(r => [r.date, r.nav]));
+    const merged = [];
+    for (const r of eq) {
+        if (goldByDate.has(r.date) && benchByDate.has(r.date)) {
+            merged.push({ date: r.date, EQUITY: r.nav, GOLD: goldByDate.get(r.date), BENCHMARK: benchByDate.get(r.date) });
+        }
+    }
+    merged.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    return merged;
+}
 
 // ====================== BACKTEST ENGINE (Main Thread) ======================
 function calcMetrics(values, dates, cashFlows = null) {
@@ -3205,7 +2988,33 @@ function getAssetStats(historicalData, activeAssets) {
     for (let i=0; i < activeAssets.length; i++) for (let j=0; j <= i; j++) { let sum = 0; for (let k=0; k < j; k++) sum += L[i][k] * L[j][k]; if (i === j) L[i][j] = Math.sqrt(covarianceMatrix[i][i] - sum); else L[i][j] = (1.0 / L[j][j] * (covarianceMatrix[i][j] - sum)); }
     return { means, cholesky: L, assets: activeAssets };
 }
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Phase 1: load data.json once (cached in rawJsonData; strategy switches reuse it, no re-fetch).
+    try {
+        const res = await fetch('./data.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        rawJsonData = await res.json();
+    } catch (err) {
+        console.error('[strategy] failed to load ./data.json — dashboard has no data', err);
+    }
+    // Expose future keys dropped into data.json as extra options (zero code change);
+    // disable placeholder keys with no rows yet so they can't blank the dashboard.
+    const strategySelect = document.getElementById('strategy-selector');
+    if (strategySelect && rawJsonData) {
+        Object.keys(rawJsonData).forEach(k => {
+            if (k === 'gold' || k === 'benchmark' || STRATEGY_KEYS.includes(k)) return;
+            const opt = document.createElement('option');
+            opt.value = k; opt.textContent = k;
+            strategySelect.appendChild(opt);
+        });
+        Array.from(strategySelect.options).forEach(o => {
+            const rows = rawJsonData[o.value];
+            if (!rows || rows.length === 0) { o.disabled = true; o.textContent += ' (data pending)'; }
+        });
+        currentStrategy = strategySelect.value;
+    }
+    data = buildMergedData(currentStrategy);
+    console.log(`[strategy] ${currentStrategy}:`, data.length, 'rows', data.slice(0, 3));
     const defaultInitialAllocations = { "EQUITY": 60, "GOLD": 40, "BOND": 0, "NASDAQ": 0 };
     const chartInstances = {};
     let savedAllocations = [];
@@ -5898,6 +5707,16 @@ document.addEventListener('DOMContentLoaded', () => {
     summaryTable.addEventListener('mouseout', () => { tooltip.style.display = 'none'; });
     generateAllocationInputs();
     populateDateDropdowns();
+    // Phase 1: strategy switch reuses cached rawJsonData (no re-fetch); full render refactor lands in Phase 3.
+    if (strategySelect) strategySelect.addEventListener('change', () => {
+        currentStrategy = strategySelect.value;
+        const merged = buildMergedData(currentStrategy);
+        if (merged.length === 0) return; // keep previous dataset on placeholder keys
+        data = merged;
+        console.log(`[strategy] ${currentStrategy}:`, data.length, 'rows', data.slice(0, 3));
+        populateDateDropdowns();
+        updateChartAndTable();
+    });
     document.querySelectorAll('.controls input, .controls select').forEach(input => input.addEventListener('input', updateChartAndTable));
     document.getElementById('log-scale-toggle').addEventListener('change', updateChartAndTable);
     
