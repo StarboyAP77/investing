@@ -346,6 +346,8 @@
         .asset-color-REBALANCED { background-color: #ffedcc; }
         .asset-color-NON_REBALANCED { background-color: #ffe6f0; }
         .asset-color-BENCHMARK { background-color: #f0f0f0; }
+        .asset-color-EQUITY_ONLY { background-color: #d9f2e2; }
+        .asset-color-GOLD_ONLY { background-color: #faf3d7; }
 
         body.dark-mode .asset-color-EQUITY { background-color: #1c3d25; }
         body.dark-mode .asset-color-BOND { background-color: #1f3a4d; }
@@ -354,6 +356,8 @@
         body.dark-mode .asset-color-REBALANCED { background-color: #4d3b1f; }
         body.dark-mode .asset-color-NON_REBALANCED { background-color: #4d1f33; }
         body.dark-mode .asset-color-BENCHMARK { background-color: #444; }
+        body.dark-mode .asset-color-EQUITY_ONLY { background-color: #16382a; }
+        body.dark-mode .asset-color-GOLD_ONLY { background-color: #57501f; }
         body.dark-mode .yearly-performance-table td div { color: #e0e0e0; }
 
 

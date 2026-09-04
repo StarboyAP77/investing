@@ -11,6 +11,8 @@
             
             if (mode === 'reb') histData = results.standard.reb.historyWithoutWithdrawals;
             else if (mode === 'noReb') histData = results.standard.noReb.historyWithoutWithdrawals;
+            else if (mode === 'equityOnly') histData = results.standard.equityOnly.historyWithoutWithdrawals;
+            else if (mode === 'goldOnly') histData = results.standard.goldOnly.historyWithoutWithdrawals;
             else histData = results.standard.benchmark.historyWithoutWithdrawals;
             
             if(!histData || histData.length < 12) return;

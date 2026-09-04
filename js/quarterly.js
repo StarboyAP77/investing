@@ -140,27 +140,27 @@ import { chartInstances, getBaseChartOptions } from './charts-core.js';
         refreshTable();
     }
 
-    export function updateMoMPerformanceChart(filteredData, dates, targetAlloc, rebData, noRebData, benchmarkData) {
+    export function updateMoMPerformanceChart(filteredData, dates, targetAlloc, rebData, noRebData, benchmarkData, equityOnlyData, goldOnlyData) {
         const chart = chartInstances['mom-rank-chart']; if (!chart || dates.length < 2) return;
         const activeAssets = Object.keys(targetAlloc).filter(k => targetAlloc[k] > 0); if (activeAssets.length === 0) { chart.clear(); return; }
-        const monthlyReturnsData = {}, seriesData = {}, allAssetNames = [...activeAssets, 'REBALANCED', 'NON_REBALANCED', 'BENCHMARK'], uniqueAssets = [...new Set(allAssetNames)];
+        const monthlyReturnsData = {}, seriesData = {}, allAssetNames = [...activeAssets, 'REBALANCED', 'NON_REBALANCED', 'BENCHMARK', 'EQUITY_ONLY', 'GOLD_ONLY'], uniqueAssets = [...new Set(allAssetNames)];
         uniqueAssets.forEach(asset => { seriesData[asset] = []; });
-        allAssetNames.forEach(asset => { let navHistory; if (asset === 'REBALANCED') navHistory = rebData.historyWithoutWithdrawals; else if (asset === 'NON_REBALANCED') navHistory = noRebData.historyWithoutWithdrawals; else if (asset === 'BENCHMARK') navHistory = benchmarkData; else { const firstValue = filteredData[0][asset] || 1; navHistory = filteredData.map(d => (d[asset] / firstValue) * 100); } monthlyReturnsData[asset] = calculateMonthlyReturnsForRank(navHistory); });
+        allAssetNames.forEach(asset => { let navHistory; if (asset === 'REBALANCED') navHistory = rebData.historyWithoutWithdrawals; else if (asset === 'NON_REBALANCED') navHistory = noRebData.historyWithoutWithdrawals; else if (asset === 'BENCHMARK') navHistory = benchmarkData; else if (asset === 'EQUITY_ONLY') navHistory = equityOnlyData; else if (asset === 'GOLD_ONLY') navHistory = goldOnlyData; else if (asset === 'EQUITY_ONLY') navHistory = equityOnlyData; else if (asset === 'GOLD_ONLY') navHistory = goldOnlyData; else { const firstValue = filteredData[0][asset] || 1; navHistory = filteredData.map(d => (d[asset] / firstValue) * 100); } monthlyReturnsData[asset] = calculateMonthlyReturnsForRank(navHistory); });
         const monthlyRankData = {}; allAssetNames.forEach(asset => monthlyRankData[asset] = []);
         const monthCount = monthlyReturnsData[allAssetNames[0]].length;
         for (let i = 0; i < monthCount; i++) {
             const rankedForMonth = allAssetNames.map(asset => ({ name: asset, return: monthlyReturnsData[asset][i] })).sort((a, b) => b.return - a.return);
             rankedForMonth.forEach((assetData, rankIndex) => { monthlyRankData[assetData.name].push({ rank: rankIndex + 1, return: assetData.return }); });
         }
-        const ASSET_CHART_COLORS = { EQUITY: 'green', BOND: 'blue', GOLD: '#DAA520', NASDAQ: '#e53935', REBALANCED: '#ff8f00', NON_REBALANCED: '#d81b60', BENCHMARK: 'grey' };
-        const series = allAssetNames.map(assetName => { let displayName = assetName; if (assetName === 'REBALANCED') displayName = 'Rebalanced'; else if (assetName === 'NON_REBALANCED') displayName = 'Non-Rebalanced'; return { name: displayName, type: 'line', smooth: true, symbol: 'none', data: monthlyRankData[assetName].map(d => ({ value: d.rank, originalReturn: d.return })), lineStyle: { width: 2.5, color: ASSET_CHART_COLORS[assetName] || 'black' }, itemStyle: { color: ASSET_CHART_COLORS[assetName] || 'black' } }; });
-        const legendSelected = {}; uniqueAssets.forEach(asset => { let displayName = asset; if (asset === 'REBALANCED') displayName = 'Rebalanced'; else if (asset === 'NON_REBALANCED') displayName = 'Non-Rebalanced'; if (asset === 'EQUITY' || asset === 'GOLD' || asset === 'BOND' || asset === 'NON_REBALANCED') legendSelected[displayName] = false; else legendSelected[displayName] = true; });
+        const ASSET_CHART_COLORS = { EQUITY: 'green', BOND: 'blue', GOLD: '#DAA520', NASDAQ: '#e53935', REBALANCED: '#ff8f00', NON_REBALANCED: '#d81b60', BENCHMARK: 'grey', EQUITY_ONLY: '#006400', GOLD_ONLY: '#b8912a' };
+        const series = allAssetNames.map(assetName => { let displayName = assetName; if (assetName === 'REBALANCED') displayName = 'Rebalanced'; else if (assetName === 'NON_REBALANCED') displayName = 'Non-Rebalanced'; else if (assetName === 'EQUITY_ONLY') displayName = 'Equity Only'; else if (assetName === 'GOLD_ONLY') displayName = 'Gold Only'; return { name: displayName, type: 'line', smooth: true, symbol: 'none', data: monthlyRankData[assetName].map(d => ({ value: d.rank, originalReturn: d.return })), lineStyle: { width: 2.5, color: ASSET_CHART_COLORS[assetName] || 'black' }, itemStyle: { color: ASSET_CHART_COLORS[assetName] || 'black' } }; });
+        const legendSelected = {}; uniqueAssets.forEach(asset => { let displayName = asset; if (asset === 'REBALANCED') displayName = 'Rebalanced'; else if (asset === 'NON_REBALANCED') displayName = 'Non-Rebalanced'; else if (asset === 'EQUITY_ONLY') displayName = 'Equity Only'; else if (asset === 'GOLD_ONLY') displayName = 'Gold Only'; if (asset === 'EQUITY' || asset === 'GOLD' || asset === 'BOND' || asset === 'NON_REBALANCED') legendSelected[displayName] = false; else legendSelected[displayName] = true; });
         const option = { ...getBaseChartOptions(), legend: { ...getBaseChartOptions().legend, selected: legendSelected, }, title: { text: 'Month-on-Month Asset Performance Rank' }, tooltip: { trigger: 'axis', formatter: (params) => { let tooltipText = `<b>${params[0].axisValueLabel}</b><br/>`; params.sort((a, b) => a.value - b.value); params.forEach(param => { tooltipText += `${param.marker} Rank ${param.value}: ${param.seriesName} (${param.data.originalReturn.toFixed(2)}%)<br/>`; }); return tooltipText; } }, grid: { left: 40, right: 40, top: 80, bottom: 60 }, xAxis: { type: 'category', boundaryGap: false, data: dates.slice(1).map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })) }, yAxis: { type: 'value', inverse: true, min: 1, max: allAssetNames.length, axisLabel: { formatter: 'Rank {value}' } }, series: series };
         chart.setOption(option, true);
     }
 
 
-    export function updateAvgRollingReturnsChart(rebData, noRebData, benchmarkData) {
+    export function updateAvgRollingReturnsChart(rebData, noRebData, benchmarkData, equityOnlyData, goldOnlyData) {
         const chartDom = document.getElementById('avg-rolling-returns-chart');
         if(!chartDom) return;
         let chart = echarts.getInstanceByDom(chartDom);
@@ -190,12 +190,16 @@ import { chartInstances, getBaseChartOptions } from './charts-core.js';
         const pData = [];
         const nrData = [];
         const bData = [];
+        const eqData = [];
+        const gdData = [];
 
         // Calculate for 1 to 12 months
         horizons.forEach(h => {
             pData.push(calcAvgForWindow(rebData.historyWithoutWithdrawals, h).toFixed(2));
             nrData.push(calcAvgForWindow(noRebData.historyWithoutWithdrawals, h).toFixed(2));
             bData.push(calcAvgForWindow(benchmarkData.historyWithoutWithdrawals, h).toFixed(2));
+            eqData.push(calcAvgForWindow(equityOnlyData.historyWithoutWithdrawals, h).toFixed(2));
+            gdData.push(calcAvgForWindow(goldOnlyData.historyWithoutWithdrawals, h).toFixed(2));
         });
 
         const option = {
@@ -210,7 +214,7 @@ import { chartInstances, getBaseChartOptions } from './charts-core.js';
                     return txt;
                 }
             },
-            legend: { data: ['Rebalanced', 'Non-Rebalanced', 'Benchmark'], bottom: 0 },
+            legend: { data: ['Rebalanced', 'Non-Rebalanced', 'Benchmark', 'Equity Only', 'Gold Only'], bottom: 0 },
             xAxis: { 
                 type: 'category', 
                 data: horizons.map(h => `${h} Mo`),
@@ -236,6 +240,18 @@ import { chartInstances, getBaseChartOptions } from './charts-core.js';
                     type: 'bar',
                     data: bData,
                     itemStyle: { color: 'rgb(156, 156, 156)' } // Grey
+                },
+                {
+                    name: 'Equity Only',
+                    type: 'bar',
+                    data: eqData,
+                    itemStyle: { color: 'rgb(0, 100, 0)' }
+                },
+                {
+                    name: 'Gold Only',
+                    type: 'bar',
+                    data: gdData,
+                    itemStyle: { color: 'rgb(218, 165, 32)' }
                 }
             ],
             grid: { top: 30, right: 20, bottom: 40, left: 50 }

@@ -1,10 +1,11 @@
 // Split from index.html in Phase 4 (GSD). See .planning/phases/04-js-css-separation/PLAN.md.
 // Concern: benchmark simulation + asset stats
 export function runBenchmarkSimulation(data, options) {
-    const { 
+    const {
         useSip = false, monthlySipAmount = 0, sipDuration = 12, lumpsumAmount = 0,
         monthlyWithdrawal = 0, inflationRate = 0, withdrawalDelayYears = 0,
-        withdrawalStrategy = 'standard', dynamicWithdrawalSettings = {}
+        withdrawalStrategy = 'standard', dynamicWithdrawalSettings = {},
+        asset = 'BENCHMARK' // Phase 7: single-asset buy-and-hold sim (BENCHMARK/EQUITY/GOLD)
     } = options;
 
     const initialCapital = useSip ? 0 : lumpsumAmount;
@@ -17,7 +18,7 @@ export function runBenchmarkSimulation(data, options) {
 
     for (let i = 1; i < data.length; i++) {
         const curr = data[i], prev = data[i - 1];
-        const assetReturn = prev.BENCHMARK > 0 ? (curr.BENCHMARK / prev.BENCHMARK) - 1 : 0;
+        const assetReturn = prev[asset] > 0 ? (curr[asset] / prev[asset]) - 1 : 0;
         const prevCorpusValue = corpusWithWithdrawals;
         corpusWithWithdrawals *= (1 + assetReturn);
         corpusWithoutWithdrawals *= (1 + assetReturn);

@@ -15,5 +15,7 @@ Milestone: Dynamic strategy switching via `data.json` (GitHub Pages safe)
   Goal: Every collapsible `<details class="chart-group">` computes + renders on first open (existing toggle+dirty-flag pattern generalized); cold load renders core path only.
 - [ ] **Phase 6 — Equity-Only / Gold-Only Overlay** (`06-equity-gold-overlay`)
   Goal: Add standalone `Equity Only` + `Gold Only` lines to main `Strategy Comparison` chart (`#equity-chart`), same scale, legend-togglable.
+- [ ] **Phase 7 — Equity-Only / Gold-Only Everywhere** (`07-equity-gold-everywhere`)
+  Goal: Extend the duo to every reb/noReb/benchmark trio — engine sims + metrics, 6-col perf tables, 12 new sibling charts, corpus/scatter series, lazy sections.
 
 Execute one by one: plan → execute → human verify. No commits, no tests.

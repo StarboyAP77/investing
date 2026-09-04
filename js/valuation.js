@@ -33,7 +33,9 @@ import { calculateProxyVIX, getStressZones } from './crash.js';
         const strategies = [
             { name: 'Strategy (Rebalanced)', data: results.standard.reb.historyWithoutWithdrawals },
             { name: 'No Rebalance (Drift)', data: results.standard.noReb.historyWithoutWithdrawals },
-            { name: 'Benchmark', data: results.standard.benchmark.historyWithoutWithdrawals }
+            { name: 'Benchmark', data: results.standard.benchmark.historyWithoutWithdrawals },
+            { name: 'Equity Only', data: results.standard.equityOnly.historyWithoutWithdrawals },
+            { name: 'Gold Only', data: results.standard.goldOnly.historyWithoutWithdrawals }
         ];
 
         const currentDots = [];
@@ -284,6 +286,14 @@ import { calculateProxyVIX, getStressZones } from './crash.js';
             histData = results.standard.noReb.historyWithoutWithdrawals;
             nameColor = '#e74c3c'; // Red
             titleText = "Non-Rebalanced Strategy";
+        } else if (mode === 'equityOnly') {
+            histData = results.standard.equityOnly.historyWithoutWithdrawals;
+            nameColor = '#006400'; // Green
+            titleText = "Equity Only";
+        } else if (mode === 'goldOnly') {
+            histData = results.standard.goldOnly.historyWithoutWithdrawals;
+            nameColor = '#DAA520'; // Gold
+            titleText = "Gold Only";
         } else {
             histData = results.standard.benchmark.historyWithoutWithdrawals;
             nameColor = '#34495e'; // Grey/Black

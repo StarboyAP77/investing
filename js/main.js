@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let mcWorker = null;
     let comparisonData = {};
     const possibleAssets = data.length > 0 ? Object.keys(data[0]).filter(key => key !== 'date' && key !== 'BENCHMARK') : Object.keys(defaultInitialAllocations);
-    const chartIds = [ 'equity-chart', 'corpus-chart-rebalanced', 'corpus-chart-no-rebalance', 'corpus-chart-benchmark', 'allocation-chart-rebalanced', 'allocation-chart-no-rebalance', 'yearly-returns-rebalanced', 'yearly-returns-no-rebalance', 'yearly-returns-benchmark', 'monthly-returns-rebalanced', 'monthly-returns-no-rebalance', 'monthly-returns-benchmark', 'drawdown-chart-rebalanced', 'drawdown-chart-no-rebalance', 'drawdown-chart-benchmark', 'rolling-returns-chart', 'rolling-returns-no-rebalance-chart', 'rolling-returns-benchmark-chart', 'risk-return-scatter-plot', 'mc-funnel-chart-rebalanced', 'mc-histogram-chart-rebalanced', 'mc-funnel-chart-no-rebalance', 'mc-histogram-chart-no-rebalance', 'yoy-rank-chart', 'mom-rank-chart' ];
+    const chartIds = [ 'equity-chart', 'corpus-chart-rebalanced', 'corpus-chart-no-rebalance', 'corpus-chart-benchmark', 'corpus-chart-equityonly', 'corpus-chart-goldonly', 'allocation-chart-rebalanced', 'allocation-chart-no-rebalance', 'yearly-returns-rebalanced', 'yearly-returns-no-rebalance', 'yearly-returns-benchmark', 'monthly-returns-rebalanced', 'monthly-returns-no-rebalance', 'monthly-returns-benchmark', 'drawdown-chart-rebalanced', 'drawdown-chart-no-rebalance', 'drawdown-chart-benchmark', 'rolling-returns-chart', 'rolling-returns-no-rebalance-chart', 'rolling-returns-benchmark-chart', 'risk-return-scatter-plot', 'mc-funnel-chart-rebalanced', 'mc-histogram-chart-rebalanced', 'mc-funnel-chart-no-rebalance', 'mc-histogram-chart-no-rebalance', 'yoy-rank-chart', 'mom-rank-chart' , 'yearly-path-equityonly', 'yearly-path-goldonly', 'fair-value-equityonly', 'fair-value-goldonly', 'yearly-returns-equityonly', 'yearly-returns-goldonly', 'monthly-returns-equityonly', 'monthly-returns-goldonly', 'drawdown-chart-equityonly', 'drawdown-chart-goldonly', 'rolling-returns-equityonly-chart', 'rolling-returns-goldonly-chart' ];
     chartIds.forEach(id => initializeChart(id));
     window.addEventListener('resize', () => { setTimeout(() => { Object.values(chartInstances).forEach(chart => { if (chart) chart.resize(); }); }, 200); });
     function generateAllocationInputs() {
@@ -117,8 +117,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const chart = chartInstances['risk-return-scatter-plot']; if (!chart) return;
         const savedData = savedAllocations.map(s => ({ value: [parseFloat(s.vol), parseFloat(s.cagr)], name: s.name }));
         const currentNoReb = { value: [parseFloat(currentMetrics.noReb?.Vol), parseFloat(currentMetrics.noReb?.CAGR)], name: 'Current No Rebalance' };
-        const currentReb = { value: [parseFloat(currentMetrics.reb?.Vol), parseFloat(currentMetrics.reb?.CAGR)], name: 'Current Rebalance' };
-        const option = { ...getBaseChartOptions(), title: { ...getBaseChartOptions().title, text: 'Risk vs. Return' }, xAxis: { ...getBaseChartOptions().xAxis, name: 'Volatility (%)', type: 'value', scale: true }, yAxis: { ...getBaseChartOptions().yAxis, name: 'CAGR (%)', type: 'value', axisLabel: { formatter: '{value}%' }, scale: true }, tooltip: { ...getBaseChartOptions().tooltip, trigger: 'item', formatter: params => { if(!params.data || !params.data.value) return ''; return `${params.data.name}<br/>CAGR: ${params.data.value[1].toFixed(2)}%<br/>Volatility: ${params.data.value[0].toFixed(2)}%`; } }, series: [ { name: 'Saved Allocations', type: 'scatter', data: savedData, itemStyle: { color: 'rgba(128, 128, 128, 0.7)' }, symbolSize: 10 }, { name: 'Current No Rebalance', type: 'scatter', data: [currentNoReb], itemStyle: { color: 'rgba(255, 99, 132, 1)' }, symbol: 'rect', symbolSize: 12 }, { name: 'Current Rebalance', type: 'scatter', data: [currentReb], itemStyle: { color: 'rgba(54, 162, 235, 1)' }, symbol: 'triangle', symbolSize: 12 } ], dataZoom: null, toolbox: null, };
+        const currentReb = { value: [parseFloat(currentMetrics.reb?.Vol), parseFloat(currentMetrics.reb?.CAGR)], name: 'Current Rebalance' }; const currentEqOnly = { value: [parseFloat(currentMetrics.equityOnly?.Vol), parseFloat(currentMetrics.equityOnly?.CAGR)], name: 'Equity Only' }; const currentGdOnly = { value: [parseFloat(currentMetrics.goldOnly?.Vol), parseFloat(currentMetrics.goldOnly?.CAGR)], name: 'Gold Only' };
+        const option = { ...getBaseChartOptions(), title: { ...getBaseChartOptions().title, text: 'Risk vs. Return' }, xAxis: { ...getBaseChartOptions().xAxis, name: 'Volatility (%)', type: 'value', scale: true }, yAxis: { ...getBaseChartOptions().yAxis, name: 'CAGR (%)', type: 'value', axisLabel: { formatter: '{value}%' }, scale: true }, tooltip: { ...getBaseChartOptions().tooltip, trigger: 'item', formatter: params => { if(!params.data || !params.data.value) return ''; return `${params.data.name}<br/>CAGR: ${params.data.value[1].toFixed(2)}%<br/>Volatility: ${params.data.value[0].toFixed(2)}%`; } }, series: [ { name: 'Saved Allocations', type: 'scatter', data: savedData, itemStyle: { color: 'rgba(128, 128, 128, 0.7)' }, symbolSize: 10 }, { name: 'Current No Rebalance', type: 'scatter', data: [currentNoReb], itemStyle: { color: 'rgba(255, 99, 132, 1)' }, symbol: 'rect', symbolSize: 12 }, { name: 'Current Rebalance', type: 'scatter', data: [currentReb], itemStyle: { color: 'rgba(54, 162, 235, 1)' }, symbol: 'triangle', symbolSize: 12 }, { name: 'Equity Only', type: 'scatter', data: [currentEqOnly], itemStyle: { color: 'rgba(0, 100, 0, 1)' }, symbol: 'circle', symbolSize: 12 }, { name: 'Gold Only', type: 'scatter', data: [currentGdOnly], itemStyle: { color: 'rgba(218, 165, 32, 1)' }, symbol: 'diamond', symbolSize: 12 } ], dataZoom: null, toolbox: null, };
         chart.setOption(option);
     }
     function updateSavedAllocationsList() {
@@ -264,7 +264,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                         withdrawalStrategy: strat, 
                         dynamicWithdrawalSettings,
                         ...gkParams
-                    }) 
+                    }),
+
+                    // Phase 7: single-asset buy-and-hold legs (same shape as benchmark)
+                    equityOnly: runBenchmarkSimulation(filteredData, {
+                        ...commonOptions,
+                        withdrawalStrategy: strat,
+                        dynamicWithdrawalSettings,
+                        ...gkParams,
+                        asset: 'EQUITY'
+                    }),
+                    goldOnly: runBenchmarkSimulation(filteredData, {
+                        ...commonOptions,
+                        withdrawalStrategy: strat,
+                        dynamicWithdrawalSettings,
+                        ...gkParams,
+                        asset: 'GOLD'
+                    })
                 }; 
             });
 
@@ -275,11 +291,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const noRebMetrics = { ...calcMetrics(results.standard.noReb.historyWithoutWithdrawals, dates), Rebalances: results.standard.noReb.navRebalanceCount || 0 };
             const rebMetrics = { ...calcMetrics(results.standard.reb.historyWithoutWithdrawals, dates), Rebalances: results.standard.reb.navRebalanceCount };
             const benchmarkMetrics = calcMetrics(results.standard.benchmark.historyWithoutWithdrawals, dates);
-            currentMetrics = { reb: rebMetrics, noReb: noRebMetrics };
-            const periods = [1, 3, 5, 7, 10]; periods.forEach(p => { const noRebStats = calculateRollingCagrStats(results.standard.noReb.historyWithoutWithdrawals, p); noRebMetrics[`Avg Rolling CAGR (${p}Y)`] = noRebStats ? noRebStats.avg : 'N/A'; const rebStats = calculateRollingCagrStats(results.standard.reb.historyWithoutWithdrawals, p); rebMetrics[`Avg Rolling CAGR (${p}Y)`] = rebStats ? rebStats.avg : 'N/A'; const benchmarkStats = calculateRollingCagrStats(results.standard.benchmark.historyWithoutWithdrawals, p); benchmarkMetrics[`Avg Rolling CAGR (${p}Y)`] = benchmarkStats ? benchmarkStats.avg : 'N/A'; });
+            const equityOnlyMetrics = calcMetrics(results.standard.equityOnly.historyWithoutWithdrawals, dates);
+            const goldOnlyMetrics = calcMetrics(results.standard.goldOnly.historyWithoutWithdrawals, dates);
+            currentMetrics = { reb: rebMetrics, noReb: noRebMetrics, equityOnly: equityOnlyMetrics, goldOnly: goldOnlyMetrics };
+            const periods = [1, 3, 5, 7, 10]; periods.forEach(p => { const noRebStats = calculateRollingCagrStats(results.standard.noReb.historyWithoutWithdrawals, p); noRebMetrics[`Avg Rolling CAGR (${p}Y)`] = noRebStats ? noRebStats.avg : 'N/A'; const rebStats = calculateRollingCagrStats(results.standard.reb.historyWithoutWithdrawals, p); rebMetrics[`Avg Rolling CAGR (${p}Y)`] = rebStats ? rebStats.avg : 'N/A'; const benchmarkStats = calculateRollingCagrStats(results.standard.benchmark.historyWithoutWithdrawals, p); benchmarkMetrics[`Avg Rolling CAGR (${p}Y)`] = benchmarkStats ? benchmarkStats.avg : 'N/A'; const eqOnlyStats = calculateRollingCagrStats(results.standard.equityOnly.historyWithoutWithdrawals, p); equityOnlyMetrics[`Avg Rolling CAGR (${p}Y)`] = eqOnlyStats ? eqOnlyStats.avg : 'N/A'; const gdOnlyStats = calculateRollingCagrStats(results.standard.goldOnly.historyWithoutWithdrawals, p); goldOnlyMetrics[`Avg Rolling CAGR (${p}Y)`] = gdOnlyStats ? gdOnlyStats.avg : 'N/A'; });
             const noRebMetricsWithWithdrawals = calcMetrics(results.standard.noReb.history, dates, results.standard.noReb.cashFlows);
             const rebMetricsWithWithdrawals = calcMetrics(results.standard.reb.history, dates, results.standard.reb.cashFlows);
             const benchmarkMetricsWithWithdrawals = calcMetrics(results.standard.benchmark.history, dates, results.standard.benchmark.cashFlows);
+            const equityOnlyMetricsWithWithdrawals = calcMetrics(results.standard.equityOnly.history, dates, results.standard.equityOnly.cashFlows);
+            const goldOnlyMetricsWithWithdrawals = calcMetrics(results.standard.goldOnly.history, dates, results.standard.goldOnly.cashFlows);
 
             // --- SAVE STATE FOR LAZY LOADING ---
             globalDates = dates;
@@ -287,7 +307,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             timingSectionNeedsUpdate = true;
             globalFilteredData = filteredData;
 
-        return { filteredData, dates, targetAlloc, results, commonOptions, useSip, withdrawalStrategyMode, gkConfig, noRebMetrics, rebMetrics, benchmarkMetrics, noRebMetricsWithWithdrawals, rebMetricsWithWithdrawals, benchmarkMetricsWithWithdrawals };
+        return { filteredData, dates, targetAlloc, results, commonOptions, useSip, withdrawalStrategyMode, gkConfig, noRebMetrics, rebMetrics, benchmarkMetrics, noRebMetricsWithWithdrawals, rebMetricsWithWithdrawals, benchmarkMetricsWithWithdrawals, equityOnlyMetrics, goldOnlyMetrics, equityOnlyMetricsWithWithdrawals, goldOnlyMetricsWithWithdrawals };
     }
     window.calculateMetrics = calculateMetrics; // console verification hook (Phase 2)
 
@@ -307,7 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderVisualizations(calc) {
-            const { filteredData, dates, targetAlloc, results, commonOptions, useSip, withdrawalStrategyMode, gkConfig, noRebMetrics, rebMetrics, benchmarkMetrics, noRebMetricsWithWithdrawals, rebMetricsWithWithdrawals, benchmarkMetricsWithWithdrawals } = calc;
+            const { filteredData, dates, targetAlloc, results, commonOptions, useSip, withdrawalStrategyMode, gkConfig, noRebMetrics, rebMetrics, benchmarkMetrics, noRebMetricsWithWithdrawals, rebMetricsWithWithdrawals, benchmarkMetricsWithWithdrawals, equityOnlyMetrics, goldOnlyMetrics, equityOnlyMetricsWithWithdrawals, goldOnlyMetricsWithWithdrawals } = calc;
 
             try {
             if (isSectionOpen('sec-asset-correlation-matrix')) {
@@ -316,7 +336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             let performanceData = null, sortedYears = null;
             if (isSectionOpen('sec-year-on-year-asset-performance-table') || isSectionOpen('sec-year-on-year-asset-rank-chart')) {
-                ({ performanceData, sortedYears } = updateYearlyPerformanceTable(filteredData, dates, targetAlloc, results.standard.reb, results.standard.noReb, results.standard.benchmark.historyWithoutWithdrawals));
+                ({ performanceData, sortedYears } = updateYearlyPerformanceTable(filteredData, dates, targetAlloc, results.standard.reb, results.standard.noReb, results.standard.benchmark.historyWithoutWithdrawals, results.standard.equityOnly.historyWithoutWithdrawals, results.standard.goldOnly.historyWithoutWithdrawals));
             }
             if (isSectionOpen('sec-year-on-year-asset-rank-chart') && performanceData) updateYoYPerformanceChart(performanceData, sortedYears);
             
@@ -324,6 +344,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updateSpaghettiChart('yearly-path-rebalanced', dates, results.standard.reb.historyWithoutWithdrawals, '#2980b9');
                 updateSpaghettiChart('yearly-path-no-rebalance', dates, results.standard.noReb.historyWithoutWithdrawals, '#c0392b');
                 updateSpaghettiChart('yearly-path-benchmark', dates, results.standard.benchmark.historyWithoutWithdrawals, '#34495e');
+                updateSpaghettiChart('yearly-path-equityonly', dates, results.standard.equityOnly.historyWithoutWithdrawals, '#006400');
+                updateSpaghettiChart('yearly-path-goldonly', dates, results.standard.goldOnly.historyWithoutWithdrawals, '#DAA520');
             }
 
             if (isSectionOpen('sec-quarterly-performance-heatmap')) {
@@ -331,11 +353,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (isSectionOpen('sec-month-on-month-asset-rank-chart')) {
-                updateMoMPerformanceChart(filteredData, dates, targetAlloc, results.standard.reb, results.standard.noReb, results.standard.benchmark.historyWithoutWithdrawals);
+                updateMoMPerformanceChart(filteredData, dates, targetAlloc, results.standard.reb, results.standard.noReb, results.standard.benchmark.historyWithoutWithdrawals, results.standard.equityOnly.historyWithoutWithdrawals, results.standard.goldOnly.historyWithoutWithdrawals);
             }
 
             if (isSectionOpen('sec-average-rolling-returns-1m-12m')) {
-                updateAvgRollingReturnsChart(results.standard.reb, results.standard.noReb, results.standard.benchmark);
+                updateAvgRollingReturnsChart(results.standard.reb, results.standard.noReb, results.standard.benchmark, results.standard.equityOnly, results.standard.goldOnly);
             }
 
             if (isSectionOpen('deployment-section')) {
@@ -355,6 +377,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updateFairValueChart('fair-value-rebalanced', dates, results.standard.reb.historyWithoutWithdrawals, '#2980b9');
                 updateFairValueChart('fair-value-no-rebalance', dates, results.standard.noReb.historyWithoutWithdrawals, '#c0392b');
                 updateFairValueChart('fair-value-benchmark', dates, results.standard.benchmark.historyWithoutWithdrawals, '#34495e');
+                updateFairValueChart('fair-value-equityonly', dates, results.standard.equityOnly.historyWithoutWithdrawals, '#006400');
+                updateFairValueChart('fair-value-goldonly', dates, results.standard.goldOnly.historyWithoutWithdrawals, '#DAA520');
             }
 
             if (isSectionOpen('bunker-chart-section')) {
@@ -640,7 +664,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isSectionOpen('sec-withdrawal-charts')) {
                 const corpusYAxisFormatter = v => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' }).format(v);
                 const corpusTooltipFormatter = (p) => { let txt = `${p[0].axisValueLabel}<br/>`; p.forEach(item => { txt += `${item.marker} ${item.seriesName}: ${formatCurrency(item.value[1])}<br/>`; }); return txt; };
-                const chartConfigs = [ { id: 'corpus-chart-rebalanced', title: 'Corpus Simulation (With Rebalancing)', dataKey: 'reb' }, { id: 'corpus-chart-no-rebalance', title: 'Corpus Simulation (Without Rebalancing)', dataKey: 'noReb' }, { id: 'corpus-chart-benchmark', title: 'Corpus Simulation (Benchmark)', dataKey: 'benchmark' } ];
+                const chartConfigs = [ { id: 'corpus-chart-rebalanced', title: 'Corpus Simulation (With Rebalancing)', dataKey: 'reb' }, { id: 'corpus-chart-no-rebalance', title: 'Corpus Simulation (Without Rebalancing)', dataKey: 'noReb' }, { id: 'corpus-chart-benchmark', title: 'Corpus Simulation (Benchmark)', dataKey: 'benchmark' }, { id: 'corpus-chart-equityonly', title: 'Corpus Simulation (Equity Only)', dataKey: 'equityOnly' }, { id: 'corpus-chart-goldonly', title: 'Corpus Simulation (Gold Only)', dataKey: 'goldOnly' } ];
                 chartConfigs.forEach(config => { chartInstances[config.id].setOption({ title: { text: config.title }, tooltip: { formatter: corpusTooltipFormatter }, legend: { top: 35 }, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: corpusYAxisFormatter } }, series: [ { name: 'Corpus w/o Withdrawals', type: 'line', showSymbol: false, lineStyle: { type: 'dashed', color: 'rgb(128, 128, 128)' }, data: results.standard[config.dataKey].historyWithoutWithdrawals.map((d, i) => [dates[i], d]) }, { name: 'Standard - Corpus', type: 'line', showSymbol: false, data: results.standard[config.dataKey].history.map((d, i) => [dates[i], d]), itemStyle: { color: 'rgb(255, 99, 132)' } }, { name: 'Standard - Total Withdrawn', type: 'line', showSymbol: false, data: results.standard[config.dataKey].cumulativeWithdrawals.map((d, i) => [dates[i], d]), itemStyle: { color: 'rgb(204, 79, 105)' } }, { name: 'Dyn. Threshold - Corpus', type: 'line', showSymbol: false, data: results.dynamicThreshold[config.dataKey].history.map((d, i) => [dates[i], d]), itemStyle: { color: 'rgb(54, 162, 235)' } }, { name: 'Dyn. Threshold - Total Withdrawn', type: 'line', showSymbol: false, data: results.dynamicThreshold[config.dataKey].cumulativeWithdrawals.map((d, i) => [dates[i], d]), itemStyle: { color: 'rgb(153, 102, 255)' } }, { name: 'Prop. Shield - Corpus', type: 'line', showSymbol: false, data: results.proportionalShield[config.dataKey].history.map((d, i) => [dates[i], d]), itemStyle: { color: 'rgb(75, 192, 192)' } }, { name: 'Prop. Shield - Total Withdrawn', type: 'line', showSymbol: false, data: results.proportionalShield[config.dataKey].cumulativeWithdrawals.map((d, i) => [dates[i], d]), itemStyle: { color: 'rgb(46, 139, 87)' } }, { name: 'Guyton-Klinger - Corpus', type: 'line', showSymbol: false, data: results.guyton_klinger[config.dataKey].history.map((d, i) => [dates[i], d]), itemStyle: { color: 'rgb(186, 85, 211)' } }, { name: 'Guyton-Klinger - Total Withdrawn', type: 'line', showSymbol: false, data: results.guyton_klinger[config.dataKey].cumulativeWithdrawals.map((d, i) => [dates[i], d]), itemStyle: { color: 'rgb(138, 43, 226)' } } ] }); });
             }
             
@@ -651,6 +675,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const yrReb = calculateYearlyReturns(results.standard.reb.historyWithoutWithdrawals, dates); chartInstances['yearly-returns-rebalanced'].setOption({ title: { text: 'Rebalanced Strategy - Yearly Returns' }, tooltip: { formatter: yearlyTooltipFormatter }, xAxis: { type: 'category', data: yrReb.labels }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [ { name: 'Yearly Return', type: 'bar', data: yrReb.data, itemStyle: { color: 'lightblue' }, markLine: { data: [{ type: 'average', name: 'Avg' }], lineStyle: { color: 'red' } } }, { name: 'Max Yearly Drawdown', type: 'bar', data: yrReb.drawdowns, itemStyle: { color: 'rgba(255, 99, 132, 0.7)' } } ] });
                 const yrNoReb = calculateYearlyReturns(results.standard.noReb.historyWithoutWithdrawals, dates); chartInstances['yearly-returns-no-rebalance'].setOption({ title: { text: 'Non-Rebalanced Strategy - Yearly Returns' }, tooltip: { formatter: yearlyTooltipFormatter }, xAxis: { type: 'category', data: yrNoReb.labels }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [ { name: 'Yearly Return', type: 'bar', data: yrNoReb.data, itemStyle: { color: 'lightcoral' }, markLine: { data: [{ type: 'average', name: 'Avg' }], lineStyle: { color: 'red' } } }, { name: 'Max Yearly Drawdown', type: 'bar', data: yrNoReb.drawdowns, itemStyle: { color: 'rgba(255, 99, 132, 0.7)' } } ] });
                 const yrBenchmark = calculateYearlyReturns(results.standard.benchmark.historyWithoutWithdrawals, dates); chartInstances['yearly-returns-benchmark'].setOption({ title: { text: 'Benchmark - Yearly Returns' }, tooltip: { formatter: yearlyTooltipFormatter }, xAxis: { type: 'category', data: yrBenchmark.labels }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [ { name: 'Yearly Return', type: 'bar', data: yrBenchmark.data, itemStyle: { color: 'lightgrey' }, markLine: { data: [{ type: 'average', name: 'Avg' }], lineStyle: { color: 'red' } } }, { name: 'Max Yearly Drawdown', type: 'bar', data: yrBenchmark.drawdowns, itemStyle: { color: 'rgba(255, 99, 132, 0.7)' } } ] });
+                const yrEqOnly = calculateYearlyReturns(results.standard.equityOnly.historyWithoutWithdrawals, dates); chartInstances['yearly-returns-equityonly'].setOption({ title: { text: 'Equity Only - Yearly Returns' }, tooltip: { formatter: yearlyTooltipFormatter }, xAxis: { type: 'category', data: yrEqOnly.labels }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [ { name: 'Yearly Return', type: 'bar', data: yrEqOnly.data, itemStyle: { color: 'lightgreen' }, markLine: { data: [{ type: 'average', name: 'Avg' }], lineStyle: { color: 'red' } } }, { name: 'Max Yearly Drawdown', type: 'bar', data: yrEqOnly.drawdowns, itemStyle: { color: 'rgba(255, 99, 132, 0.7)' } } ] });
+                const yrGdOnly = calculateYearlyReturns(results.standard.goldOnly.historyWithoutWithdrawals, dates); chartInstances['yearly-returns-goldonly'].setOption({ title: { text: 'Gold Only - Yearly Returns' }, tooltip: { formatter: yearlyTooltipFormatter }, xAxis: { type: 'category', data: yrGdOnly.labels }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [ { name: 'Yearly Return', type: 'bar', data: yrGdOnly.data, itemStyle: { color: 'gold' }, markLine: { data: [{ type: 'average', name: 'Avg' }], lineStyle: { color: 'red' } } }, { name: 'Max Yearly Drawdown', type: 'bar', data: yrGdOnly.drawdowns, itemStyle: { color: 'rgba(255, 99, 132, 0.7)' } } ] });
             }
             
             if (isSectionOpen('sec-monthly-returns')) {
@@ -658,6 +684,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const mrReb = calculateMonthlyReturns(results.standard.reb.historyWithoutWithdrawals, dates); chartInstances['monthly-returns-rebalanced'].setOption({ title: { text: 'Rebalanced Strategy - Monthly Returns' }, tooltip: { formatter: monthlyTooltipFormatter}, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [{ name: 'Monthly Return', type: 'bar', data: mrReb, itemStyle: { color: 'lightblue' }, markLine: { data: [{ type: 'average', name: 'Avg' }], lineStyle: { color: 'red' } } }] });
                 const mrNoReb = calculateMonthlyReturns(results.standard.noReb.historyWithoutWithdrawals, dates); chartInstances['monthly-returns-no-rebalance'].setOption({ title: { text: 'Non-Rebalanced Strategy - Monthly Returns' }, tooltip: { formatter: monthlyTooltipFormatter}, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [{ name: 'Monthly Return', type: 'bar', data: mrNoReb, itemStyle: { color: 'lightcoral' }, markLine: { data: [{ type: 'average', name: 'Avg' }], lineStyle: { color: 'red' } } }] });
                 const mrBenchmark = calculateMonthlyReturns(results.standard.benchmark.historyWithoutWithdrawals, dates); chartInstances['monthly-returns-benchmark'].setOption({ title: { text: 'Benchmark - Monthly Returns' }, tooltip: { formatter: monthlyTooltipFormatter}, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [{ name: 'Monthly Return', type: 'bar', data: mrBenchmark, itemStyle: { color: 'lightgrey' }, markLine: { data: [{ type: 'average', name: 'Avg' }], lineStyle: { color: 'red' } } }] });
+                const mrEqOnly = calculateMonthlyReturns(results.standard.equityOnly.historyWithoutWithdrawals, dates); chartInstances['monthly-returns-equityonly'].setOption({ title: { text: 'Equity Only - Monthly Returns' }, tooltip: { formatter: monthlyTooltipFormatter}, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [{ name: 'Monthly Return', type: 'bar', data: mrEqOnly, itemStyle: { color: 'lightgreen' }, markLine: { data: [{ type: 'average', name: 'Avg' }], lineStyle: { color: 'red' } } }] });
+                const mrGdOnly = calculateMonthlyReturns(results.standard.goldOnly.historyWithoutWithdrawals, dates); chartInstances['monthly-returns-goldonly'].setOption({ title: { text: 'Gold Only - Monthly Returns' }, tooltip: { formatter: monthlyTooltipFormatter}, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [{ name: 'Monthly Return', type: 'bar', data: mrGdOnly, itemStyle: { color: 'gold' }, markLine: { data: [{ type: 'average', name: 'Avg' }], lineStyle: { color: 'red' } } }] });
             }
 
             if (isSectionOpen('sec-underwater-drawdown-chart')) {
@@ -665,6 +693,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const ddReb = calculateDrawdown(results.standard.reb.historyWithoutWithdrawals, dates); chartInstances['drawdown-chart-rebalanced'].setOption({ title: { text: 'Rebalanced Strategy - Drawdown' }, tooltip: { formatter: drawdownTooltipFormatter }, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [{ name: 'Drawdown', type: 'line', data: ddReb, showSymbol: false, areaStyle: {}, itemStyle: { color: 'rgb(54, 162, 235)'} }] });
                 const ddNoReb = calculateDrawdown(results.standard.noReb.historyWithoutWithdrawals, dates); chartInstances['drawdown-chart-no-rebalance'].setOption({ title: { text: 'Non-Rebalanced Strategy - Drawdown' }, tooltip: { formatter: drawdownTooltipFormatter }, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [{ name: 'Drawdown', type: 'line', data: ddNoReb, showSymbol: false, areaStyle: {}, itemStyle: { color: 'rgb(255, 99, 132)'} }] });
                 const ddBenchmark = calculateDrawdown(results.standard.benchmark.historyWithoutWithdrawals, dates); chartInstances['drawdown-chart-benchmark'].setOption({ title: { text: 'Benchmark - Drawdown' }, tooltip: { formatter: drawdownTooltipFormatter }, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [{ name: 'Drawdown', type: 'line', data: ddBenchmark, showSymbol: false, areaStyle: {}, itemStyle: { color: 'rgb(156, 156, 156)'} }] });
+                const ddEqOnly = calculateDrawdown(results.standard.equityOnly.historyWithoutWithdrawals, dates); chartInstances['drawdown-chart-equityonly'].setOption({ title: { text: 'Equity Only - Drawdown' }, tooltip: { formatter: drawdownTooltipFormatter }, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [{ name: 'Drawdown', type: 'line', data: ddEqOnly, showSymbol: false, areaStyle: {}, itemStyle: { color: 'rgb(0, 100, 0)'} }] });
+                const ddGdOnly = calculateDrawdown(results.standard.goldOnly.historyWithoutWithdrawals, dates); chartInstances['drawdown-chart-goldonly'].setOption({ title: { text: 'Gold Only - Drawdown' }, tooltip: { formatter: drawdownTooltipFormatter }, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: [{ name: 'Drawdown', type: 'line', data: ddGdOnly, showSymbol: false, areaStyle: {}, itemStyle: { color: 'rgb(218, 165, 32)'} }] });
             }
 
             const rollingPeriods = [1, 3, 5, 7, 10, 15];
@@ -677,13 +707,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isSectionOpen('sec-rolling-returns-benchmark')) {
                 chartInstances['rolling-returns-benchmark-chart'].setOption({ title: { text: 'Rolling Returns (Benchmark)' }, tooltip: { formatter: percentTooltipFormatter }, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: calculateRollingReturns(results.standard.benchmark.historyWithoutWithdrawals, dates, rollingPeriods) });
             }
+            if (isSectionOpen('sec-rolling-returns-equity-only')) {
+                chartInstances['rolling-returns-equityonly-chart'].setOption({ title: { text: 'Rolling Returns (Equity Only)' }, tooltip: { formatter: percentTooltipFormatter }, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: calculateRollingReturns(results.standard.equityOnly.historyWithoutWithdrawals, dates, rollingPeriods) });
+            }
+            if (isSectionOpen('sec-rolling-returns-gold-only')) {
+                chartInstances['rolling-returns-goldonly-chart'].setOption({ title: { text: 'Rolling Returns (Gold Only)' }, tooltip: { formatter: percentTooltipFormatter }, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: calculateRollingReturns(results.standard.goldOnly.historyWithoutWithdrawals, dates, rollingPeriods) });
+            }
 
             if (isSectionOpen('sec-risk-vs-return-scatter-plot')) {
                 updateRiskReturnChart();
             }
             
             if (isSectionOpen('sec-perfomance-metrics-without-withdrawals') || isSectionOpen('sec-performance-metrics-with-withdrawals')) {
-                const periods = [1, 3, 5, 7, 10]; periods.forEach(p => { const noRebStats = calculateRollingCagrStats(results.standard.noReb.historyWithoutWithdrawals, p); noRebMetrics[`Avg Rolling CAGR (${p}Y)`] = noRebStats ? noRebStats.avg : 'N/A'; const rebStats = calculateRollingCagrStats(results.standard.reb.historyWithoutWithdrawals, p); rebMetrics[`Avg Rolling CAGR (${p}Y)`] = rebStats ? rebStats.avg : 'N/A'; const benchmarkStats = calculateRollingCagrStats(results.standard.benchmark.historyWithoutWithdrawals, p); benchmarkMetrics[`Avg Rolling CAGR (${p}Y)`] = benchmarkStats ? benchmarkStats.avg : 'N/A'; });
+                const periods = [1, 3, 5, 7, 10]; periods.forEach(p => { const noRebStats = calculateRollingCagrStats(results.standard.noReb.historyWithoutWithdrawals, p); noRebMetrics[`Avg Rolling CAGR (${p}Y)`] = noRebStats ? noRebStats.avg : 'N/A'; const rebStats = calculateRollingCagrStats(results.standard.reb.historyWithoutWithdrawals, p); rebMetrics[`Avg Rolling CAGR (${p}Y)`] = rebStats ? rebStats.avg : 'N/A'; const benchmarkStats = calculateRollingCagrStats(results.standard.benchmark.historyWithoutWithdrawals, p); benchmarkMetrics[`Avg Rolling CAGR (${p}Y)`] = benchmarkStats ? benchmarkStats.avg : 'N/A'; const eqOnlyStats = calculateRollingCagrStats(results.standard.equityOnly.historyWithoutWithdrawals, p); equityOnlyMetrics[`Avg Rolling CAGR (${p}Y)`] = eqOnlyStats ? eqOnlyStats.avg : 'N/A'; const gdOnlyStats = calculateRollingCagrStats(results.standard.goldOnly.historyWithoutWithdrawals, p); goldOnlyMetrics[`Avg Rolling CAGR (${p}Y)`] = gdOnlyStats ? gdOnlyStats.avg : 'N/A'; });
             }
 
             const higherIsBetterMetrics = new Set(['Absolute Return', 'CAGR', 'Sharpe', 'Sortino', 'Calmar', 'PositiveMonths', 'Max Consecutive + Months', 'Avg Positive Month', 'Gain/Loss Ratio', 'Avg Rolling CAGR (1Y)', 'Avg Rolling CAGR (3Y)', 'Avg Rolling CAGR (5Y)', 'Avg Rolling CAGR (7Y)', 'Avg Rolling CAGR (10Y)']);
@@ -701,7 +737,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (higherIsBetterMetrics.has(key)) { if (noRebVal > rebVal) { noRebClass = 'better'; rebClass = 'worse'; } else { rebClass = 'better'; noRebClass = 'worse'; } }
                         else if (lowerIsBetterMetrics.has(key)) { if (key === 'MaxDD' || key === 'Avg Negative Month' || key === 'Average Drawdown %') { if (noRebVal > rebVal) { noRebClass = 'better'; rebClass = 'worse'; } else { rebClass = 'better'; noRebClass = 'worse'; } } else { if (noRebVal < rebVal) { noRebClass = 'better'; rebClass = 'worse'; } else { rebClass = 'better'; noRebClass = 'worse'; } } }
                     }
-                    return `<tr><td><strong>${key}</strong></td><td class="${noRebClass}">${noRebMetrics[key] ?? 'N/A'}</td><td class="${rebClass}">${rebMetrics[key] ?? 'N/A'}</td><td>${key === 'Rebalances' ? 'N/A' : (benchmarkMetrics[key] ?? 'N/A')}</td></tr>`;
+                    return `<tr><td><strong>${key}</strong></td><td class="${noRebClass}">${noRebMetrics[key] ?? 'N/A'}</td><td class="${rebClass}">${rebMetrics[key] ?? 'N/A'}</td><td>${key === 'Rebalances' ? 'N/A' : (benchmarkMetrics[key] ?? 'N/A')}</td><td>${key === 'Rebalances' ? 'N/A' : (equityOnlyMetrics[key] ?? 'N/A')}</td><td>${key === 'Rebalances' ? 'N/A' : (goldOnlyMetrics[key] ?? 'N/A')}</td></tr>`;
                 }).join('');
 
 
@@ -715,17 +751,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <td>-</td>
                         <td style="color:#c0392b; font-weight:bold;">${fmt(totalTaxPaid)}</td>
                         <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
                     </tr>
                 `;
 
                 if (results.standard.reb.bunkerBurnMonths > 0) {
                     tableBodyHtml += `
-                        <tr style="background-color: #fff3cd;">
-                            <td><strong>🔥 Bunker Burn Months (Survival)</strong></td>
-                            <td>-</td>
-                            <td style="font-weight:bold; color:#d35400;">${results.standard.reb.bunkerBurnMonths} Months</td>
-                            <td>-</td>
-                        </tr>
+                    <tr style="background-color: #fff3cd;">
+                        <td><strong>🔥 Bunker Burn Months (Survival)</strong></td>
+                        <td>-</td>
+                        <td style="font-weight:bold; color:#d35400;">${results.standard.reb.bunkerBurnMonths} Months</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                    </tr>
                     `;
                 }
 
@@ -740,7 +780,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (higherIsBetterMetrics.has(key)) { if (noRebVal > rebVal) { noRebClass = 'better'; rebClass = 'worse'; } else { rebClass = 'better'; noRebClass = 'worse'; } }
                         else if (lowerIsBetterMetrics.has(key)) { if (key === 'MaxDD' || key === 'Avg Negative Month' || key === 'Average Drawdown %') { if (noRebVal > rebVal) { noRebClass = 'better'; rebClass = 'worse'; } else { rebClass = 'better'; noRebClass = 'worse'; } } else { if (noRebVal < rebVal) { noRebClass = 'better'; rebClass = 'worse'; } else { rebClass = 'better'; noRebClass = 'worse'; } } }
                     }
-                    return `<tr><td><strong>${key}</strong></td><td class="${noRebClass}">${noRebMetricsWithWithdrawals[key] ?? 'N/A'}</td><td class="${rebClass}">${rebMetricsWithWithdrawals[key] ?? 'N/A'}</td><td>${benchmarkMetricsWithWithdrawals[key] ?? 'N/A'}</td></tr>`;
+                    return `<tr><td><strong>${key}</strong></td><td class="${noRebClass}">${noRebMetricsWithWithdrawals[key] ?? 'N/A'}</td><td class="${rebClass}">${rebMetricsWithWithdrawals[key] ?? 'N/A'}</td><td>${benchmarkMetricsWithWithdrawals[key] ?? 'N/A'}</td><td>${equityOnlyMetricsWithWithdrawals[key] ?? 'N/A'}</td><td>${goldOnlyMetricsWithWithdrawals[key] ?? 'N/A'}</td></tr>`;
                 }).join('');
                 document.querySelector("#metrics-table-with-withdrawals tbody").innerHTML = tableBodyHtmlWithWithdrawals;
             }
@@ -1068,6 +1108,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             let hist;
             if (mode === 'reb') hist = globalResults.standard.reb.historyWithoutWithdrawals;
             else if (mode === 'noReb') hist = globalResults.standard.noReb.historyWithoutWithdrawals;
+            else if (mode === 'equityOnly') hist = globalResults.standard.equityOnly.historyWithoutWithdrawals;
+            else if (mode === 'goldOnly') hist = globalResults.standard.goldOnly.historyWithoutWithdrawals;
             else hist = globalResults.standard.benchmark.historyWithoutWithdrawals;
 
             const TOTAL_CAPITAL = 2500000;
@@ -1311,6 +1353,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             let hist;
             if (mode === 'reb') hist = globalResults.standard.reb.historyWithoutWithdrawals;
             else if (mode === 'noReb') hist = globalResults.standard.noReb.historyWithoutWithdrawals;
+            else if (mode === 'equityOnly') hist = globalResults.standard.equityOnly.historyWithoutWithdrawals;
+            else if (mode === 'goldOnly') hist = globalResults.standard.goldOnly.historyWithoutWithdrawals;
             else hist = globalResults.standard.benchmark.historyWithoutWithdrawals;
 
             // --- 1. BUILD THE HEATMAP MATRIX ---
