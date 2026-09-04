@@ -5023,37 +5023,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function updateChartAndTable() {
+    // Phase 2: standalone calculation engine. Takes the active merged dataset
+    // ([{date, EQUITY, GOLD, BENCHMARK}]) as an argument instead of reading the
+    // module-global `data`, purges previous-run state on every call, and returns
+    // everything the render layer needs. (Distinct from module-level
+    // calcMetrics(values, dates, cashFlows) used inside.)
+    function calculateMetrics(mergedData) {
+        // ---- purge previous run: no cross-contamination between strategies ----
+        globalResults = {};
+        globalFilteredData = [];
+        globalDates = [];
+        currentMetrics = {};
+        timingSectionNeedsUpdate = true;
+        horizonSectionNeedsUpdate = true;
+        correlationSectionNeedsUpdate = true;
+        harvestSectionNeedsUpdate = true;
 
+        // ---- input snapshot (moved verbatim from updateChartAndTable) ----
             // 1. GET NEW WITHDRAWAL INPUTS
             const freqEl = document.querySelector('input[name="withdrawal-freq"]:checked');
             const withdrawalFreq = freqEl ? parseInt(freqEl.value) : 1;
-            
             // 2. Get Strategy Mode
             const withdrawalStrategyMode = document.querySelector('input[name="withdrawal-strategy-mode"]:checked').value;
-            
-            // --- UI VISIBILITY LOGIC ---
-            const bunkerPanel = document.getElementById('bunker-config-panel');
-            const bunkerChartSection = document.getElementById('bunker-chart-section');
-            const gkPanel = document.getElementById('gk-config-panel');
-            const gkGuardrailSection = document.getElementById('gk-guardrail-chart-section');
-            
-            if(withdrawalStrategyMode === 'smart_rebalance' || withdrawalStrategyMode === 'guyton_klinger') {
-                if(bunkerPanel) bunkerPanel.style.display = 'block';
-                if(bunkerChartSection) bunkerChartSection.style.display = 'block';
-            } else {
-                if(bunkerPanel) bunkerPanel.style.display = 'none';
-                if(bunkerChartSection) bunkerChartSection.style.display = 'none';
-            }
-
-            if(withdrawalStrategyMode === 'guyton_klinger') {
-                if(gkPanel) gkPanel.style.display = 'block';
-                if(gkGuardrailSection) gkGuardrailSection.style.display = 'block';
-            } else {
-                if(gkPanel) gkPanel.style.display = 'none';
-                if(gkGuardrailSection) gkGuardrailSection.style.display = 'none';
-            }
-
             // --- PARSE BUNKER CONFIG (Safe Fallbacks) ---
             // We use safe parsing (|| 0) to prevent crashes if elements aren't found
             const bunkerConfig = {
@@ -5082,17 +5073,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const taxLtcgRate = parseFloat(document.getElementById('tax-ltcg').value) / 100 || 0.125;
             const taxExemptionLimit = parseFloat(document.getElementById('tax-exemption').value) || 125000;
 
+        // ---- date-range filter on the PASSED dataset (was: module-global `data`) ----
             const startDateSelect = document.getElementById('start-date'), endDateSelect = document.getElementById('end-date');
             if (startDateSelect.selectedIndex > endDateSelect.selectedIndex) endDateSelect.selectedIndex = startDateSelect.selectedIndex;
-            const startIndex = data.findIndex(d => d.date === startDateSelect.value), endIndex = data.findIndex(d => d.date === endDateSelect.value);
-            const filteredData = data.slice(startIndex, endIndex + 1);
-            if (!filteredData || filteredData.length < 2) {
-                chartInstances['equity-chart'].clear();
-                return;
-            }
+            const startIndex = mergedData.findIndex(d => d.date === startDateSelect.value), endIndex = mergedData.findIndex(d => d.date === endDateSelect.value);
+            const filteredData = mergedData.slice(startIndex, endIndex + 1);
+        if (!filteredData || filteredData.length < 2) return null;
 
-            try {
-                renderCorrelationMatrix(calculateCorrelationMatrix(filteredData), 'correlation-matrix-container');
                 const targetAlloc = {}; document.querySelectorAll('#allocation-inputs input').forEach(input => { targetAlloc[input.dataset.asset] = parseFloat(input.value) / 100 || 0; });
                 
                 const investmentMethod = document.querySelector('input[name="investment-method"]:checked').value;
@@ -5184,6 +5171,65 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
             const dates = filteredData.map(d => d.date);
+
+        // ---- headline + rolling + with-withdrawal metrics (moved verbatim) ----
+            const noRebMetrics = { ...calcMetrics(results.standard.noReb.historyWithoutWithdrawals, dates), Rebalances: results.standard.noReb.navRebalanceCount || 0 };
+            const rebMetrics = { ...calcMetrics(results.standard.reb.historyWithoutWithdrawals, dates), Rebalances: results.standard.reb.navRebalanceCount };
+            const benchmarkMetrics = calcMetrics(results.standard.benchmark.historyWithoutWithdrawals, dates);
+            currentMetrics = { reb: rebMetrics, noReb: noRebMetrics };
+            const periods = [1, 3, 5, 7, 10]; periods.forEach(p => { const noRebStats = calculateRollingCagrStats(results.standard.noReb.historyWithoutWithdrawals, p); noRebMetrics[`Avg Rolling CAGR (${p}Y)`] = noRebStats ? noRebStats.avg : 'N/A'; const rebStats = calculateRollingCagrStats(results.standard.reb.historyWithoutWithdrawals, p); rebMetrics[`Avg Rolling CAGR (${p}Y)`] = rebStats ? rebStats.avg : 'N/A'; const benchmarkStats = calculateRollingCagrStats(results.standard.benchmark.historyWithoutWithdrawals, p); benchmarkMetrics[`Avg Rolling CAGR (${p}Y)`] = benchmarkStats ? benchmarkStats.avg : 'N/A'; });
+            const noRebMetricsWithWithdrawals = calcMetrics(results.standard.noReb.history, dates, results.standard.noReb.cashFlows);
+            const rebMetricsWithWithdrawals = calcMetrics(results.standard.reb.history, dates, results.standard.reb.cashFlows);
+            const benchmarkMetricsWithWithdrawals = calcMetrics(results.standard.benchmark.history, dates, results.standard.benchmark.cashFlows);
+
+            // --- SAVE STATE FOR LAZY LOADING ---
+            globalDates = dates;
+            globalResults = results;
+            timingSectionNeedsUpdate = true;
+            globalFilteredData = filteredData;
+
+        return { filteredData, dates, targetAlloc, results, commonOptions, useSip, withdrawalStrategyMode, gkConfig, noRebMetrics, rebMetrics, benchmarkMetrics, noRebMetricsWithWithdrawals, rebMetricsWithWithdrawals, benchmarkMetricsWithWithdrawals };
+    }
+    window.calculateMetrics = calculateMetrics; // console verification hook (Phase 2)
+
+    function updateChartAndTable() {
+
+            // 2. Get Strategy Mode
+            const withdrawalStrategyMode = document.querySelector('input[name="withdrawal-strategy-mode"]:checked').value;
+            
+            // --- UI VISIBILITY LOGIC ---
+            const bunkerPanel = document.getElementById('bunker-config-panel');
+            const bunkerChartSection = document.getElementById('bunker-chart-section');
+            const gkPanel = document.getElementById('gk-config-panel');
+            const gkGuardrailSection = document.getElementById('gk-guardrail-chart-section');
+            
+            if(withdrawalStrategyMode === 'smart_rebalance' || withdrawalStrategyMode === 'guyton_klinger') {
+                if(bunkerPanel) bunkerPanel.style.display = 'block';
+                if(bunkerChartSection) bunkerChartSection.style.display = 'block';
+            } else {
+                if(bunkerPanel) bunkerPanel.style.display = 'none';
+                if(bunkerChartSection) bunkerChartSection.style.display = 'none';
+            }
+
+            if(withdrawalStrategyMode === 'guyton_klinger') {
+                if(gkPanel) gkPanel.style.display = 'block';
+                if(gkGuardrailSection) gkGuardrailSection.style.display = 'block';
+            } else {
+                if(gkPanel) gkPanel.style.display = 'none';
+                if(gkGuardrailSection) gkGuardrailSection.style.display = 'none';
+            }
+
+            // Phase 2: math lives in calculateMetrics(mergedData) above; below is render-only.
+            const calc = calculateMetrics(data);
+            if (!calc) {
+                chartInstances['equity-chart'].clear();
+                return;
+            }
+            // (withdrawalStrategyMode already declared above for visibility toggles — same DOM value — so excluded here.)
+            const { filteredData, dates, targetAlloc, results, commonOptions, useSip, gkConfig, noRebMetrics, rebMetrics, benchmarkMetrics, noRebMetricsWithWithdrawals, rebMetricsWithWithdrawals, benchmarkMetricsWithWithdrawals } = calc;
+
+            try {
+                renderCorrelationMatrix(calculateCorrelationMatrix(filteredData), 'correlation-matrix-container');
 
             const { performanceData, sortedYears } = updateYearlyPerformanceTable(filteredData, dates, targetAlloc, results.standard.reb, results.standard.noReb, results.standard.benchmark.historyWithoutWithdrawals);
             updateYoYPerformanceChart(performanceData, sortedYears);
@@ -5499,10 +5545,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             chartInstances['rolling-returns-no-rebalance-chart'].setOption({ title: { text: 'Rolling Returns (Non-Rebalanced Strategy)' }, tooltip: { formatter: percentTooltipFormatter }, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: calculateRollingReturns(results.standard.noReb.historyWithoutWithdrawals, dates, rollingPeriods) });
             chartInstances['rolling-returns-benchmark-chart'].setOption({ title: { text: 'Rolling Returns (Benchmark)' }, tooltip: { formatter: percentTooltipFormatter }, xAxis: { type: 'time' }, yAxis: { axisLabel: { formatter: '{value}%' } }, series: calculateRollingReturns(results.standard.benchmark.historyWithoutWithdrawals, dates, rollingPeriods) });
 
-            const noRebMetrics = { ...calcMetrics(results.standard.noReb.historyWithoutWithdrawals, dates), Rebalances: results.standard.noReb.navRebalanceCount || 0 };
-            const rebMetrics = { ...calcMetrics(results.standard.reb.historyWithoutWithdrawals, dates), Rebalances: results.standard.reb.navRebalanceCount };
-            const benchmarkMetrics = calcMetrics(results.standard.benchmark.historyWithoutWithdrawals, dates);
-            currentMetrics = { reb: rebMetrics, noReb: noRebMetrics }; updateRiskReturnChart();
+            updateRiskReturnChart();
             
             const periods = [1, 3, 5, 7, 10]; periods.forEach(p => { const noRebStats = calculateRollingCagrStats(results.standard.noReb.historyWithoutWithdrawals, p); noRebMetrics[`Avg Rolling CAGR (${p}Y)`] = noRebStats ? noRebStats.avg : 'N/A'; const rebStats = calculateRollingCagrStats(results.standard.reb.historyWithoutWithdrawals, p); rebMetrics[`Avg Rolling CAGR (${p}Y)`] = rebStats ? rebStats.avg : 'N/A'; const benchmarkStats = calculateRollingCagrStats(results.standard.benchmark.historyWithoutWithdrawals, p); benchmarkMetrics[`Avg Rolling CAGR (${p}Y)`] = benchmarkStats ? benchmarkStats.avg : 'N/A'; });
 
@@ -5549,9 +5592,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             document.querySelector("#metrics-table tbody").innerHTML = tableBodyHtml;
             
-            const noRebMetricsWithWithdrawals = calcMetrics(results.standard.noReb.history, dates, results.standard.noReb.cashFlows);
-            const rebMetricsWithWithdrawals = calcMetrics(results.standard.reb.history, dates, results.standard.reb.cashFlows);
-            const benchmarkMetricsWithWithdrawals = calcMetrics(results.standard.benchmark.history, dates, results.standard.benchmark.cashFlows);
             const tableBodyHtmlWithWithdrawals = metricKeysWithWithdrawals.map(key => {
                 if (key === 'Rebalances') return ''; let noRebClass = '', rebClass = '';
                 const noRebVal = parseMetricValue(noRebMetricsWithWithdrawals[key]), rebVal = parseMetricValue(rebMetricsWithWithdrawals[key]);
@@ -5580,11 +5620,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateMasterLedger(masterLedger, targetAlloc);
 
 
-            // --- SAVE STATE FOR LAZY LOADING ---
-            globalDates = dates;
-            globalResults = results;
-            timingSectionNeedsUpdate = true;
-            globalFilteredData = filteredData;
+            // Phase 2: state purged + persisted inside calculateMetrics().
 
             // If the section is already open, update it immediately
             const timingSection = document.getElementById('timing-dilemma-section');
