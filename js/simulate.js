@@ -3,6 +3,10 @@
 import { formatCurrency } from './charts-core.js';
     // 1. GLOBAL STATE for Random Walk
     let rwSimulationData = null; // Stores data from the main backtest
+    // Fed by main.js after every calculateMetrics() run (fix: was never assigned).
+    export function setRandomWalkData(historyWithoutWithdrawals) {
+        rwSimulationData = historyWithoutWithdrawals ? { historyWithoutWithdrawals } : null;
+    }
     export function getSeededRNG(seed) {
         return function() {
             var t = seed += 0x6D2B79F5;

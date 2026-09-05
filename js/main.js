@@ -11,7 +11,7 @@ import { updateAvgRollingReturnsChart, updateMoMPerformanceChart, updateQuarterl
 import { updateCrashAnalysis } from './crash.js';
 import { updateFearMonitorChart, updateValuationDotChart } from './valuation.js';
 import { updateDeploymentBattle } from './deployment.js';
-import { setupRandomWalkControls } from './simulate.js';
+import { setRandomWalkData, setupRandomWalkControls } from './simulate.js';
 
 // ddddddddddddddddddddd
 let data = [];
@@ -881,6 +881,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 chartInstances['equity-chart'].clear();
                 return;
             }
+            setRandomWalkData(calc.results.standard.reb.historyWithoutWithdrawals);
             renderVisualizations(calc);
     }
 

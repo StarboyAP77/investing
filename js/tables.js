@@ -487,14 +487,3 @@ export function renderCorrelationMatrix(data, containerId) {
         
         tableBody.innerHTML = tableHtml;
     }
-
-
-
-    // ============================================================
-    // 🎲 RANDOM WALK SIMULATION MODULE
-    // ============================================================
-
-    // 1. GLOBAL STATE for Random Walk
-    let rwSimulationData = null; // Stores data from the main backtest
-
-    // 2. MATH HELPERS (Seeded Random Numbers)
