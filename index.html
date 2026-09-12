@@ -276,7 +276,16 @@
                 <label for="rw-seed">Random Seed (For consistency)</label>
                 <input type="number" id="rw-seed" value="12345" step="1">
 
-                <button id="run-rw-btn" style="margin-top: 10px; background-color: #8e44ad;">Run Random Walk</button>
+                <label>Simulation Method</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="rw-method" value="bootstrap" checked> Real history (Bootstrap)</label>
+                    <label><input type="radio" name="rw-method" value="gbm"> Bell-curve (GBM)</label>
+                </div>
+
+                <label for="rw-block">Block Months (bootstrap memory)</label>
+                <input type="number" id="rw-block" value="3" min="1" max="12" step="1">
+
+                <button id="run-rw-btn" style="margin-top: 10px; background-color: #8e44ad;">Run Simulation</button>
             </div>
         </details>
 
@@ -872,7 +881,7 @@
             <summary><h3 style="color: #8e44ad;">🎲 Random Walk Simulation (Future Paths)</h3></summary>
             <div class="details-content">
                 <p style="font-size: 14px; color: var(--label-color); margin-bottom: 20px;">
-                    <strong>The "Drunkard's Walk":</strong> This projects thousands of possible futures based on your portfolio's historical Drift (CAGR) and Shocks (Volatility).<br/>
+                    <strong>The "Drunkard's Walk":</strong> This projects thousands of possible futures — either from your portfolio's historical Drift and Shocks (bell-curve), or by replaying your <em>actual past months</em> in random order (bootstrap: keeps real crashes).<br/>
                     It answers: <em>"Even if the average is good, what are the odds I get unlucky?"</em>
                 </p>
                 

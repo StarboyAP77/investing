@@ -17,5 +17,11 @@ Milestone: Dynamic strategy switching via `data.json` (GitHub Pages safe)
   Goal: Add standalone `Equity Only` + `Gold Only` lines to main `Strategy Comparison` chart (`#equity-chart`), same scale, legend-togglable.
 - [ ] **Phase 7 — Equity-Only / Gold-Only Everywhere** (`07-equity-gold-everywhere`)
   Goal: Extend the duo to every reb/noReb/benchmark trio — engine sims + metrics, 6-col perf tables, 12 new sibling charts, corpus/scatter series, lazy sections.
+- [ ] **Phase 8 — Bootstrap Resampling Engine** (`08-bootstrap-sim`)
+  Goal: Future fan from resampled real joint months (fat tails + equity↔gold correlation kept); GBM stays as toggle.
+- [ ] **Phase 9 — Goal Shortfall Probability** (`09-shortfall-probability`)
+  Goal: P(hit ₹X by date) per strategy + median endpoint + SIP-for-90% from Phase 8 paths.
+- [ ] **Phase 10 — Walk-Forward Validation** (`10-walkforward-validation`)
+  Goal: Rolling train/test windows proving strategy choices work without hindsight (anti-overfit, not a projector).
 
 Execute one by one: plan → execute → human verify. No commits, no tests.

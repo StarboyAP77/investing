@@ -87,72 +87,161 @@ import { formatCurrency } from './charts-core.js';
             finalValues.push(current);
         }
 
-        // Calculate Stats for Verdict
-        finalValues.sort((a,b) => a-b);
-        const medianPathData = [];
-        // Construct visual median line point-by-point
-        for(let t=0; t<=steps; t++) {
-            const timeSlice = allPaths.map(p => p[t]).sort((a,b)=>a-b);
-            medianPathData.push(timeSlice[Math.floor(timeSlice.length * 0.5)]);
+        renderFanChart(chart, allPaths, startValue, steps, 'GBM');
+    }
+
+    // 2b. BOOTSTRAP (Phase 8): replay REAL joint months instead of bell-curve shocks.
+    function logReturns(hist) {
+        const r = [];
+        for (let i = 1; i < hist.length; i++) if (hist[i-1] > 0) r.push(Math.log(hist[i] / hist[i-1]));
+        return r;
+    }
+    // legs: { name: history[] }. One shared month-index sequence per path preserves
+    // cross-leg correlation (same "world" for every leg). blockMonths>1 preserves momentum.
+    export function resamplePaths(legs, { months, nPaths, seed, blockMonths = 1 }) {
+        const names = Object.keys(legs);
+        const rets = {};
+        names.forEach(n => rets[n] = logReturns(legs[n]));
+        const T = Math.min(...names.map(n => rets[n].length));
+        if (T < 2 || months < 1 || nPaths < 1) return null;
+        const B = Math.max(1, Math.min(blockMonths || 1, T));
+        const rng = getSeededRNG(seed);
+        const out = {};
+        names.forEach(n => out[n] = []);
+        for (let p = 0; p < nPaths; p++) {
+            const idx = [];
+            while (idx.length < months) {
+                const s = Math.floor(rng() * T);
+                for (let b = 0; b < B && idx.length < months; b++) idx.push((s + b) % T);
+            }
+            names.forEach(n => out[n].push(idx.map(i => rets[n][i])));
         }
-
-        const successCount = finalValues.filter(v => v > startValue).length;
-        const winRate = (successCount / paths) * 100;
-        const p10 = finalValues[Math.floor(paths * 0.1)];
-        const p90 = finalValues[Math.floor(paths * 0.9)];
-
-        // Update Text Verdict
-        const verdictEl = document.getElementById('rw-verdict');
-        if(verdictEl) {
-            verdictEl.innerHTML = `
-                Win Probability: <span style="color:${winRate>50?'#27ae60':'#c0392b'}">${winRate.toFixed(1)}%</span> | 
-                Worst Case (10%): <span style="color:#c0392b">${formatCurrency(p10)}</span> | 
-                Best Case (90%): <span style="color:#27ae60">${formatCurrency(p90)}</span>
-            `;
+        return out;
+    }
+    // Standard-plan accounting over a log-return path (mirrors runBenchmarkSimulation
+    // timing/inflation rules; withdrawalDelayMonths counted from projection start).
+    export function projectWithPlan(startValue, logRets, opts) {
+        let v = startValue;
+        const path = [v];
+        let w = (opts && opts.monthlyWithdrawal) || 0;
+        const delay = (opts && opts.withdrawalDelayMonths) || 0;
+        const infl = (opts && opts.inflationRate) || 0;
+        for (let t = 1; t <= logRets.length; t++) {
+            v *= Math.exp(logRets[t - 1]);
+            if (opts && opts.monthlySipAmount > 0 && t <= (opts.sipMonths || 0)) v += opts.monthlySipAmount;
+            if (w > 0 && t > delay) {
+                if ((t - delay - 1) > 0 && (t - delay - 1) % 12 === 0) w *= (1 + infl);
+                v -= Math.min(w, v);
+            }
+            path.push(v);
         }
+        return path;
+    }
 
-        // Build Chart Series
-        const series = [];
-        
-        // 1. Add background spaghetti lines
-        allPaths.forEach(path => {
-            series.push({
-                type: 'line',
-                data: path,
-                showSymbol: false,
-                lineStyle: { width: 1, opacity: 0.15, color: '#8e44ad' },
-                animation: false,
-                silent: true // Performance boost
-            });
-        });
+    // Shared fan renderer (GBM + bootstrap): verdict + spaghetti + median + setOption.
+    function renderFanChart(chart, allPaths, startValue, steps, label) {
+        const finalValues = allPaths.map(p => p[p.length - 1]);
+    finalValues.sort((a,b) => a-b);
+    const medianPathData = [];
+    // Construct visual median line point-by-point
+    for(let t=0; t<=steps; t++) {
+        const timeSlice = allPaths.map(p => p[t]).sort((a,b)=>a-b);
+        medianPathData.push(timeSlice[Math.floor(timeSlice.length * 0.5)]);
+    }
 
-        // 2. Add Median Line (Bold)
+    const successCount = finalValues.filter(v => v > startValue).length;
+    const nPaths = allPaths.length;
+    const winRate = (successCount / nPaths) * 100;
+    const p10 = finalValues[Math.floor(nPaths * 0.1)];
+    const p90 = finalValues[Math.floor(nPaths * 0.9)];
+
+    // Update Text Verdict
+    const verdictEl = document.getElementById('rw-verdict');
+    if(verdictEl) {
+        verdictEl.innerHTML = `
+            Win Probability: <span style="color:${winRate>50?'#27ae60':'#c0392b'}">${winRate.toFixed(1)}%</span> | 
+            Worst Case (10%): <span style="color:#c0392b">${formatCurrency(p10)}</span> | 
+            Best Case (90%): <span style="color:#27ae60">${formatCurrency(p90)}</span>
+        `;
+    }
+
+    // Build Chart Series
+    const series = [];
+    
+    // 1. Add background spaghetti lines
+    allPaths.forEach(path => {
         series.push({
-            name: 'Median Scenario',
             type: 'line',
-            data: medianPathData,
+            data: path,
             showSymbol: false,
-            lineStyle: { width: 3, color: '#2c3e50' },
-            z: 10
+            lineStyle: { width: 1, opacity: 0.15, color: '#8e44ad' },
+            animation: false,
+            silent: true // Performance boost
         });
+    });
 
-        const option = {
-            title: { text: `Projecting ${steps} Months Forward`, left: 'center', top: 10, textStyle: { fontSize: 14 } },
-            tooltip: { trigger: 'axis', formatter: (p) => {
-                const med = p.find(x => x.seriesName === 'Median Scenario');
-                return med ? `Month ${med.axisValue}<br/>Median Value: <b>${formatCurrency(med.value)}</b>` : '';
-            }},
-            xAxis: { name: 'Months From Now', type: 'category', data: xLabels },
-            yAxis: { 
-                name: 'Portfolio Value', type: 'value', scale: true,
-                axisLabel: { formatter: (v) => new Intl.NumberFormat('en-IN', { notation: 'compact' }).format(v) }
-            },
-            series: series,
-            grid: { top: 50, right: 30, bottom: 30, left: 60 }
+    // 2. Add Median Line (Bold)
+    series.push({
+        name: 'Median Scenario',
+        type: 'line',
+        data: medianPathData,
+        showSymbol: false,
+        lineStyle: { width: 3, color: '#2c3e50' },
+        z: 10
+    });
+
+    const xLabels = Array.from({length: steps + 1}, (_, i) => i);
+    const option = {
+        title: { text: `Projecting ${steps} Months Forward (${label})`, left: 'center', top: 10, textStyle: { fontSize: 14 } },
+        tooltip: { trigger: 'axis', formatter: (p) => {
+            const med = p.find(x => x.seriesName === 'Median Scenario');
+            return med ? `Month ${med.axisValue}<br/>Median Value: <b>${formatCurrency(med.value)}</b>` : '';
+        }},
+        xAxis: { name: 'Months From Now', type: 'category', data: xLabels },
+        yAxis: { 
+            name: 'Portfolio Value', type: 'value', scale: true,
+            axisLabel: { formatter: (v) => new Intl.NumberFormat('en-IN', { notation: 'compact' }).format(v) }
+        },
+        series: series,
+        grid: { top: 50, right: 30, bottom: 30, left: 60 }
+    };
+
+    chart.hideLoading();
+    chart.setOption(option, true); // true = Destructive update (clear old lines)
+    }
+    // Phase 8: bootstrap run — same panel inputs + verdict as GBM.
+    export function runBootstrapSimulation() {
+        if (!rwSimulationData || !rwSimulationData.historyWithoutWithdrawals) {
+            alert("⚠️ Please wait for the main strategy to finish calculating, then try again.");
+            return;
+        }
+        const chartDom = document.getElementById('random-walk-chart');
+        if (!chartDom) return;
+        let chart = echarts.getInstanceByDom(chartDom);
+        if (!chart) chart = echarts.init(chartDom);
+        chart.showLoading();
+        const steps = parseInt(document.getElementById('rw-steps').value) || 120;
+        const paths = parseInt(document.getElementById('rw-paths').value) || 50;
+        const seedVal = parseInt(document.getElementById('rw-seed').value) || 12345;
+        const blockMonths = Math.max(1, parseInt(document.getElementById('rw-block')?.value) || 1);
+        const hist = rwSimulationData.historyWithoutWithdrawals;
+        const startValue = hist[hist.length - 1];
+        const legs = resamplePaths({ portfolio: hist }, { months: steps, nPaths: paths, seed: seedVal, blockMonths });
+        if (!legs) {
+            chart.hideLoading();
+            alert("Not enough historical data to simulate.");
+            return;
+        }
+        const method = document.querySelector('input[name="investment-method"]:checked')?.value || 'lumpsum';
+        const planOpts = {
+            monthlySipAmount: method === 'lumpsum' ? 0 : (parseFloat(document.getElementById('monthly-sip-amount').value) || 0),
+            sipMonths: method === 'lumpsum' ? 0 : (parseInt(document.getElementById('sip-duration').value, 10) || 0),
+            monthlyWithdrawal: parseFloat(document.getElementById('monthly-withdrawal').value) || 0,
+            withdrawalDelayMonths: (parseFloat(document.getElementById('withdrawal-delay').value) || 0) * 12,
+            inflationRate: (parseFloat(document.getElementById('inflation-rate').value) || 0) / 100
         };
-
-        chart.hideLoading();
-        chart.setOption(option, true); // true = Destructive update (clear old lines)
+        const allPaths = legs.portfolio.map(rets => projectWithPlan(startValue, rets, planOpts));
+        renderFanChart(chart, allPaths, startValue, steps, 'Bootstrap');
     }
 
     // 4. SETUP FUNCTION: Hooks up the sliders and button
@@ -177,8 +266,10 @@ import { formatCurrency } from './charts-core.js';
             
             newBtn.addEventListener('click', (e) => {
                 e.preventDefault(); // Prevent detail/summary toggle if inside one
-                console.log("Running Random Walk...");
-                runRandomWalkSimulation();
+                const method = document.querySelector('input[name="rw-method"]:checked')?.value || 'gbm';
+                console.log("Running simulation:", method);
+                if (method === 'bootstrap') runBootstrapSimulation();
+                else runRandomWalkSimulation();
             });
         }
     }
