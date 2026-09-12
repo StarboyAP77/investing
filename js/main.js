@@ -84,6 +84,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let horizonSectionNeedsUpdate = true;
     let correlationSectionNeedsUpdate = true;
     let harvestSectionNeedsUpdate = true;
+    let worstMonthsSectionNeedsUpdate = true;
+    let returnDistSectionNeedsUpdate = true;
     
     let currentMetrics = {};
     let mcWorker = null;
@@ -137,6 +139,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         horizonSectionNeedsUpdate = true;
         correlationSectionNeedsUpdate = true;
         harvestSectionNeedsUpdate = true;
+        worstMonthsSectionNeedsUpdate = true;
+        returnDistSectionNeedsUpdate = true;
 
         // ---- input snapshot (moved verbatim from updateChartAndTable) ----
             // 1. GET NEW WITHDRAWAL INPUTS
@@ -842,6 +846,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             const harvestSection = document.getElementById('harvest-charts-section');
             if (harvestSection && harvestSection.open) {
                 renderHarvestSection();
+            }
+
+            // If Worst-Months section is open, update it
+            worstMonthsSectionNeedsUpdate = true;
+            const worstMonthsSection = document.getElementById('worst-months-section');
+            if (worstMonthsSection && worstMonthsSection.open) {
+                renderWorstMonths();
+            }
+
+            // If Return-Distribution section is open, update it
+            returnDistSectionNeedsUpdate = true;
+            const returnDistSection = document.getElementById('return-dist-section');
+            if (returnDistSection && returnDistSection.open) {
+                renderReturnDist();
             }
             
         } catch (e) { console.error("Error updating charts:", e); }
@@ -1799,6 +1817,272 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('correlation-charts-section').addEventListener('toggle', function(e) {
         if (this.open && correlationSectionNeedsUpdate) {
             renderCorrelationCharts();
+        }
+    });
+
+    // =========================================================================
+    // 🩹 AFTER THE WORST MONTHS: RECOVERY TRACKER (LAZY LOADED ENGINE)
+    // Finds the 10 worst single months for the selected strategy and shows the
+    // total return 1Y / 5Y / 10Y after each one — colourful bars + ledger table.
+    // =========================================================================
+    function renderWorstMonths() {
+        if (!globalDates.length || !globalResults.standard) return;
+
+        const wrapper = document.getElementById('worst-months-content-wrapper');
+        const loader = document.getElementById('worst-months-loading-indicator');
+        if (!wrapper || !loader) return;
+        loader.style.display = 'block';
+        wrapper.style.display = 'none';
+
+        setTimeout(() => {
+            const mode = document.querySelector('input[name="worst-months-strategy-mode"]:checked').value;
+            let hist;
+            if (mode === 'reb') hist = globalResults.standard.reb.historyWithoutWithdrawals;
+            else if (mode === 'noReb') hist = globalResults.standard.noReb.historyWithoutWithdrawals;
+            else if (mode === 'equityOnly') hist = globalResults.standard.equityOnly.historyWithoutWithdrawals;
+            else if (mode === 'goldOnly') hist = globalResults.standard.goldOnly.historyWithoutWithdrawals;
+            else hist = globalResults.standard.benchmark.historyWithoutWithdrawals;
+            if (!hist || hist.length < 13) { loader.style.display = 'none'; return; }
+
+            const N = hist.length;
+
+            // --- 1. Monthly returns + 10 worst months (worst first) ---
+            const months = [];
+            for (let i = 1; i < N; i++) {
+                const prev = hist[i - 1];
+                if (prev > 0) months.push({ idx: i, date: globalDates[i], ret: (hist[i] / prev) - 1 });
+            }
+            months.sort((a, b) => a.ret - b.ret);
+            const worst = months.slice(0, Math.min(10, months.length));
+
+            // --- 2. Forward TOTAL returns from each worst month's low ---
+            const fwd = (idx, span) => {
+                if (idx + span >= N || hist[idx] <= 0) return null;
+                return (hist[idx + span] / hist[idx]) - 1;
+            };
+            worst.forEach(w => {
+                w.r1y = fwd(w.idx, 12);
+                w.r5y = fwd(w.idx, 60);
+                w.r10y = fwd(w.idx, 120);
+            });
+
+            const avg = (key) => {
+                const vals = worst.map(w => w[key]).filter(v => v !== null);
+                return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+            };
+            const avgMonth = worst.reduce((a, b) => a + b.ret, 0) / worst.length;
+            const avg1y = avg('r1y'), avg5y = avg('r5y'), avg10y = avg('r10y');
+
+            const fmtPct = (v) => v === null ? '—' : `${(v * 100).toFixed(1)}%`;
+            const cellColor = (v) => v === null ? '#999' : (v >= 0 ? '#27ae60' : '#c0392b');
+            const shortLabel = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+
+            // --- 3. CHART: grouped colourful bars (green/blue/purple wins, red losses) ---
+            const labels = worst.map(w => shortLabel(w.date));
+            const paint = (vals, posColor, negColor) => vals.map(v =>
+                v === null
+                    ? { value: 0, itemStyle: { color: '#e0e0e0' } }
+                    : { value: parseFloat((v * 100).toFixed(1)), itemStyle: { color: v >= 0 ? posColor : negColor } }
+            );
+            const chart = echarts.getInstanceByDom(document.getElementById('worst-months-chart')) || echarts.init(document.getElementById('worst-months-chart'));
+            chart.setOption({
+                ...getBaseChartOptions(),
+                tooltip: {
+                    trigger: 'axis', axisPointer: { type: 'shadow' },
+                    formatter: (p) => {
+                        const w = worst[p[0].dataIndex];
+                        const mRet = `<span style="color:#c0392b"><b>${(w.ret * 100).toFixed(1)}%</b></span>`;
+                        let str = `<b>${new Date(w.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })}</b> (that month: ${mRet})<br/>`;
+                        p.forEach(s => {
+                            const v = s.value === 0 && worst[s.dataIndex][s.seriesName === '1Y After' ? 'r1y' : s.seriesName === '5Y After' ? 'r5y' : 'r10y'] === null
+                                ? 'not yet finished' : `<b>${s.value}%</b>`;
+                            str += `${s.marker} ${s.seriesName}: ${v}<br/>`;
+                        });
+                        return str;
+                    }
+                },
+                legend: { data: ['1Y After', '5Y After', '10Y After'], bottom: 0 },
+                grid: { top: 40, right: 20, bottom: 70, left: 55 },
+                xAxis: { type: 'category', data: labels, axisLabel: { interval: 0, rotate: 30 } },
+                yAxis: { type: 'value', name: 'Total Return %', axisLabel: { formatter: '{value}%' } },
+                series: [
+                    { name: '1Y After', type: 'bar', data: paint(worst.map(w => w.r1y), '#27ae60', '#c0392b'), barGap: '15%' },
+                    { name: '5Y After', type: 'bar', data: paint(worst.map(w => w.r5y), '#2980b9', '#e74c3c') },
+                    { name: '10Y After', type: 'bar', data: paint(worst.map(w => w.r10y), '#8e44ad', '#e67e22') }
+                ]
+            });
+
+            // --- 4. TABLE: ledger with red/green cells + averages row ---
+            const rowHtml = (w) => {
+                const dStr = new Date(w.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+                return `<tr>
+                    <td><strong>${dStr}</strong></td>
+                    <td style="color:#c0392b; font-weight:bold;">${(w.ret * 100).toFixed(1)}%</td>
+                    <td style="color:${cellColor(w.r1y)}; font-weight:bold;">${fmtPct(w.r1y)}</td>
+                    <td style="color:${cellColor(w.r5y)}; font-weight:bold;">${fmtPct(w.r5y)}</td>
+                    <td style="color:${cellColor(w.r10y)}; font-weight:bold;">${fmtPct(w.r10y)}</td>
+                </tr>`;
+            };
+            document.querySelector('#worst-months-table tbody').innerHTML =
+                worst.map(rowHtml).join('') +
+                `<tr style="border-top: 2px solid #2c3e50; background-color: #eaf2f8;">
+                    <td><strong>Averages</strong></td>
+                    <td style="color:#c0392b; font-weight:bold;">${(avgMonth * 100).toFixed(1)}%</td>
+                    <td style="color:${cellColor(avg1y)}; font-weight:bold;">${fmtPct(avg1y)}</td>
+                    <td style="color:${cellColor(avg5y)}; font-weight:bold;">${fmtPct(avg5y)}</td>
+                    <td style="color:${cellColor(avg10y)}; font-weight:bold;">${fmtPct(avg10y)}</td>
+                </tr>`;
+
+            worstMonthsSectionNeedsUpdate = false;
+            loader.style.display = 'none';
+            wrapper.style.display = 'block';
+
+            setTimeout(() => { chart.resize(); }, 100);
+        }, 50);
+    }
+
+    // Radio switches re-render chart + table for the selected strategy
+    document.querySelectorAll('input[name="worst-months-strategy-mode"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            worstMonthsSectionNeedsUpdate = true;
+            if (document.getElementById('worst-months-section').open) {
+                renderWorstMonths();
+            }
+        });
+    });
+
+    // Collapsed section renders on first open (lazy load)
+    document.getElementById('worst-months-section').addEventListener('toggle', function(e) {
+        if (this.open && worstMonthsSectionNeedsUpdate) {
+            renderWorstMonths();
+        }
+    });
+
+    // =========================================================================
+    // 📊 MONTHLY RETURN DISTRIBUTION / RETURN STACK (LAZY LOADED ENGINE)
+    // Buckets every month of the selected strategy by its single-month return —
+    // colourful histogram + full month-wise stack table (best month first).
+    // =========================================================================
+    function renderReturnDist() {
+        if (!globalDates.length || !globalResults.standard) return;
+
+        const wrapper = document.getElementById('return-dist-content-wrapper');
+        const loader = document.getElementById('return-dist-loading-indicator');
+        if (!wrapper || !loader) return;
+        loader.style.display = 'block';
+        wrapper.style.display = 'none';
+
+        setTimeout(() => {
+            const mode = document.querySelector('input[name="return-dist-strategy-mode"]:checked').value;
+            let hist;
+            if (mode === 'reb') hist = globalResults.standard.reb.historyWithoutWithdrawals;
+            else if (mode === 'noReb') hist = globalResults.standard.noReb.historyWithoutWithdrawals;
+            else if (mode === 'equityOnly') hist = globalResults.standard.equityOnly.historyWithoutWithdrawals;
+            else if (mode === 'goldOnly') hist = globalResults.standard.goldOnly.historyWithoutWithdrawals;
+            else hist = globalResults.standard.benchmark.historyWithoutWithdrawals;
+            if (!hist || hist.length < 3) { loader.style.display = 'none'; return; }
+
+            // --- 1. BUCKETS (monthly-return ranges, worst first like the figure) ---
+            const BUCKETS = [
+                { label: '−10% or worse', test: (r) => r <= -0.10, color: '#7f0000', headBg: '#fadbd8', headTx: '#7f0000' },
+                { label: '−10% to −5%', test: (r) => r > -0.10 && r <= -0.05, color: '#c0392b', headBg: '#fadbd8', headTx: '#922b21' },
+                { label: '−5% to 0%', test: (r) => r > -0.05 && r < 0, color: '#e67e22', headBg: '#fae5d3', headTx: '#935116' },
+                { label: '0% to 5%', test: (r) => r >= 0 && r < 0.05, color: '#2ecc71', headBg: '#d5f5e3', headTx: '#1e8449' },
+                { label: '5% to 10%', test: (r) => r >= 0.05 && r < 0.10, color: '#27ae60', headBg: '#d5f5e3', headTx: '#145a32' },
+                { label: '10% or better', test: (r) => r >= 0.10, color: '#1e8449', headBg: '#d5f5e3', headTx: '#0e6251' }
+            ];
+            BUCKETS.forEach(b => { b.items = []; });
+
+            for (let i = 1; i < hist.length; i++) {
+                const prev = hist[i - 1];
+                if (prev <= 0) continue;
+                const r = (hist[i] / prev) - 1;
+                const b = BUCKETS.find(bk => bk.test(r));
+                if (b) b.items.push({ date: globalDates[i], ret: r });
+            }
+            BUCKETS.forEach(b => b.items.sort((a, c) => c.ret - a.ret)); // best first
+            const total = BUCKETS.reduce((a, b) => a + b.items.length, 0) || 1;
+
+            // --- 2. CHART: colourful bucket-count bars + win-rate note ---
+            const chart = echarts.getInstanceByDom(document.getElementById('return-dist-chart')) || echarts.init(document.getElementById('return-dist-chart'));
+            chart.setOption({
+                ...getBaseChartOptions(),
+                tooltip: {
+                    trigger: 'axis', axisPointer: { type: 'shadow' },
+                    formatter: (p) => {
+                        const b = BUCKETS[p[0].dataIndex];
+                        const share = ((b.items.length / total) * 100).toFixed(1);
+                        return `<b>${b.label}</b><br/>Months: <b>${b.items.length}</b> (${share}%)`;
+                    }
+                },
+                grid: { top: 50, right: 20, bottom: 70, left: 55 },
+                xAxis: { type: 'category', data: BUCKETS.map(b => b.label), axisLabel: { interval: 0, rotate: 25 } },
+                yAxis: { type: 'value', name: 'Months' },
+                series: [{
+                    name: 'Months', type: 'bar',
+                    data: BUCKETS.map(b => ({ value: b.items.length, itemStyle: { color: b.color, borderRadius: [5, 5, 0, 0] } })),
+                    label: { show: true, position: 'top', fontWeight: 'bold' },
+                    markLine: {
+                        silent: true, symbol: ['none', 'none'],
+                        data: [{ xAxis: 2.5 }],
+                        lineStyle: { color: '#2c3e50', type: 'dashed', width: 2 },
+                        label: { formatter: 'Losses ←  |  → Gains', position: 'insideEndTop', fontWeight: 'bold' }
+                    }
+                }]
+            });
+
+            // --- 3. TABLE: month-wise stack (columns = buckets, best first) ---
+            const maxRows = Math.max(...BUCKETS.map(b => b.items.length), 0);
+            const dateShort = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+            const dateLong = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+            let thead = '<tr>' + BUCKETS.map(b => {
+                const share = ((b.items.length / total) * 100).toFixed(1);
+                return `<th style="background-color:${b.headBg}; color:${b.headTx};">${b.label}<br/><small>n=${b.items.length} (${share}%)</small></th>`;
+            }).join('') + '</tr>';
+
+            let tbody = '';
+            for (let r = 0; r < maxRows; r++) {
+                tbody += '<tr>' + BUCKETS.map(b => {
+                    const it = b.items[r];
+                    if (!it) return '<td></td>';
+                    const col = it.ret >= 0 ? '#27ae60' : '#c0392b';
+                    return `<td title="${dateLong(it.date)}" style="color:${col}; font-weight:bold;">${(it.ret * 100).toFixed(1)}%<br/><small style="color:#999; font-weight:normal;">${dateShort(it.date)}</small></td>`;
+                }).join('') + '</tr>';
+            }
+            // Averages footer
+            tbody += '<tr style="border-top: 2px solid #2c3e50; background-color: #eaf2f8;">' + BUCKETS.map(b => {
+                if (!b.items.length) return '<td>—</td>';
+                const a = b.items.reduce((s, it) => s + it.ret, 0) / b.items.length;
+                const col = a >= 0 ? '#1e8449' : '#922b21';
+                return `<td style="color:${col}; font-weight:bold;">avg ${(a * 100).toFixed(1)}%</td>`;
+            }).join('') + '</tr>';
+
+            document.querySelector('#return-dist-table thead').innerHTML = thead;
+            document.querySelector('#return-dist-table tbody').innerHTML = tbody;
+
+            returnDistSectionNeedsUpdate = false;
+            loader.style.display = 'none';
+            wrapper.style.display = 'block';
+
+            setTimeout(() => { chart.resize(); }, 100);
+        }, 50);
+    }
+
+    // Radio switches re-render chart + table for the selected strategy
+    document.querySelectorAll('input[name="return-dist-strategy-mode"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            returnDistSectionNeedsUpdate = true;
+            if (document.getElementById('return-dist-section').open) {
+                renderReturnDist();
+            }
+        });
+    });
+
+    // Collapsed section renders on first open (lazy load)
+    document.getElementById('return-dist-section').addEventListener('toggle', function(e) {
+        if (this.open && returnDistSectionNeedsUpdate) {
+            renderReturnDist();
         }
     });
 });
